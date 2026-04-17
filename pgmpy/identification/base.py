@@ -13,23 +13,19 @@ class _BaseIdentification:
     >>> from pgmpy.identification import BaseIdentification
     >>> class SimpleId(BaseIdentification):
     ...     "A simple identification method when all variable are observed"
-    ...
+    pass
     ...     def _identify(self, causal_graph):
     ...         outcome_parents = causal_graph.predecessors(
     ...             causal_graph.get_role("exposures")
     ...         )
     ...         identified_cg = causal_graph.with_role("adjustment", outcome_parents)
     ...         return identified_cg, True
-    ...
+    pass
     """
 
     def _validate_causal_graph(self, causal_graph):
         # Check if the passed causal_graph is supported by the method.
-        if not isinstance(causal_graph, self.supported_graph_types):
-            raise ValueError(f"The `causal_graph` must be an instance of {self.supported_graph_types} for this method.")
-
-        # Check if causal_graph has `exposures` and `outcomes` roles assigned.
-        causal_graph.is_valid_causal_structure()
+        pass
 
     def identify(self, causal_graph):
         """
@@ -56,8 +52,7 @@ class _BaseIdentification:
             True if the exposures and outcomes are successfully identified; False
             otherwise.
         """
-        self._validate_causal_graph(causal_graph)
-        return self._identify(causal_graph)
+        pass
 
     def validate(self, causal_graph):
         """
@@ -78,8 +73,7 @@ class _BaseIdentification:
         bool:
             True if the graph is valid for identification; False otherwise.
         """
-        self._validate_causal_graph(causal_graph)
-        return self._validate(causal_graph)
+        pass
 
     def __call__(self, causal_graph):
         """Alias for the `identify` method"""

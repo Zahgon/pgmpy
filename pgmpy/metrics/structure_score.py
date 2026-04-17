@@ -45,5 +45,4 @@ class StructureScore(_BaseUnsupervisedMetric):
         self.scoring_method = scoring_method
 
     def _evaluate(self, X, causal_graph):
-        scoring_method = get_scoring_method(self.scoring_method, data=X)
-        return scoring_method.score(causal_graph)
+        pass

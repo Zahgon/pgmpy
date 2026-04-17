@@ -61,11 +61,7 @@ class NaiveBayes(DiscreteBayesianNetwork):
         >>> G.edges()
         OutEdgeView([('a', 'b'), ('a', 'c')])
         """
-        if self.dependent and u != self.dependent:
-            raise ValueError(f"Model can only have edges outgoing from: {self.dependent}")
-        self.dependent = u
-        self.features.add(v)
-        super().add_edge(u, v, *kwargs)
+        pass
 
     def add_edges_from(self, ebunch):
         """
@@ -93,8 +89,7 @@ class NaiveBayes(DiscreteBayesianNetwork):
         >>> G.edges()
         OutEdgeView([('a', 'b'), ('a', 'c')])
         """
-        for u, v in ebunch:
-            self.add_edge(u, v)
+        pass
 
     def active_trail_nodes(self, start, observed=None):
         """
@@ -120,11 +115,7 @@ class NaiveBayes(DiscreteBayesianNetwork):
         >>> model.active_trail_nodes("b", ["a"])
         {'b'}
         """
-
-        if observed and self.dependent in observed:
-            return set(start)
-        else:
-            return set(self.nodes()) - set(observed if observed else [])
+        pass
 
     def local_independencies(self, variables):
         """
@@ -147,11 +138,7 @@ class NaiveBayes(DiscreteBayesianNetwork):
         >>> sorted(assertion.event1), sorted(assertion.event2), sorted(assertion.event3)
         (['b'], ['c', 'd'], ['a'])
         """
-        independencies = Independencies()
-        for variable in [variables] if isinstance(variables, str) else variables:
-            if variable != self.dependent:
-                independencies.add_assertions([variable, list(set(self.features) - set(variable)), self.dependent])
-        return independencies
+        pass
 
     def fit(self, data, parent_node=None, estimator=None):
         """
@@ -191,14 +178,4 @@ class NaiveBayes(DiscreteBayesianNetwork):
         >>> sorted(model.edges())
         [('A', 'B'), ('A', 'C'), ('A', 'D'), ('A', 'E')]
         """
-        if not parent_node:
-            if not self.dependent:
-                raise ValueError("parent node must be specified for the model")
-            else:
-                parent_node = self.dependent
-        if parent_node not in data.columns:
-            raise ValueError(f"Dependent variable: {parent_node} is not present in the data")
-        for child_node in data.columns:
-            if child_node != parent_node:
-                self.add_edge(parent_node, child_node)
-        super().fit(data, estimator)
+        pass

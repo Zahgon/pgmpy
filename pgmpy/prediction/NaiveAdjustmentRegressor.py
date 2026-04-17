@@ -156,51 +156,7 @@ class NaiveAdjustmentRegressor(_BaseCausalPrediction):
         self : object
             Returns self for method chaining.
         """
-
-        # Step 1: Validate input data
-        validate_data(self, X, y, accept_sparse=False, ensure_2d=True, dtype="numeric")
-
-        # Step 2: Extract and validate causal graph roles
-        exposure_vars = self.causal_graph.get_role("exposures")
-        outcome_vars = self.causal_graph.get_role("outcomes")
-        adjustment_vars = self.causal_graph.get_role("adjustment")
-        pretreatment_vars = self.causal_graph.get_role("pretreatment")
-
-        # Validate exactly one exposure and one outcome variable
-        if len(exposure_vars) != 1:
-            raise ValueError(
-                f"Exactly one exposure variable must be defined. Found {len(exposure_vars)}: {exposure_vars}"
-            )
-
-        if len(outcome_vars) != 1:
-            raise ValueError(f"Exactly one outcome variable must be defined. Found {len(outcome_vars)}: {outcome_vars}")
-
-        # Step 3: Store role variables as instance attributes
-        self.exposure_var_ = exposure_vars[0]
-        self.outcome_var_ = outcome_vars[0]
-        self.adjustment_vars_ = adjustment_vars
-        self.pretreatment_vars_ = pretreatment_vars
-        self.feature_columns_fit_ = [self.exposure_var_] + adjustment_vars + pretreatment_vars
-
-        # Step 4: Prepare feature DataFrame
-        X_features = self._prepare_feature_df(X, required_features=self.feature_columns_fit_)
-
-        # Step 5: Initialize base estimator
-        self.estimator_ = LinearRegression() if self.estimator is None else clone(self.estimator)
-
-        # Step 6: Fit the estimator
-        self.estimator_.fit(X_features, y, sample_weight=sample_weight)
-
-        # Step 7: Create explanation
-        adj_str = ", ".join(map(str, adjustment_vars)) if adjustment_vars else "none"
-        pre_str = ", ".join(map(str, pretreatment_vars)) if pretreatment_vars else "none"
-        self.explanation_ = (
-            f"NaiveAdjustmentRegressor(exposure={self.exposure_var_}, outcome={self.outcome_var_}, "
-            f"adjustment=[{adj_str}], pretreatment=[{pre_str}], "
-            f"estimator={type(self.estimator_).__name__})"
-        )
-
-        return self
+        pass
 
     def predict(self, X):
         """Make predictions using the fitted regressor.
@@ -218,24 +174,8 @@ class NaiveAdjustmentRegressor(_BaseCausalPrediction):
         predictions : ndarray of shape (n_samples,)
             Predicted values.
         """
-        # Step 1: Validate that estimator is fitted
-        check_is_fitted(self, "estimator_")
-
-        validate_data(
-            self,
-            X,
-            accept_sparse=False,
-            ensure_2d=True,
-            dtype="numeric",
-            reset=False,
-        )
-        X_filtered = self._prepare_feature_df(X, required_features=self.feature_columns_fit_)
-
-        # Step 2: Make predictions and return as 1D array
-        predictions = self.estimator_.predict(X_filtered)
-        return np.asarray(predictions).ravel()
+        pass
 
     def get_feature_names_out(self, input_features=None):
         """Get output feature names for transformation."""
-        check_is_fitted(self, "estimator_")
-        return np.array(self.feature_columns_fit_, dtype=str)
+        pass

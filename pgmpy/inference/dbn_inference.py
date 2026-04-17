@@ -105,7 +105,7 @@ class DBNInference(Inference):
         time_slice: int
             time slice where to shift the nodes.
         """
-        return [(node[0], time_slice) for node in nodes]
+        pass
 
     def _get_clique(self, junction_tree, nodes):
         """
@@ -120,8 +120,7 @@ class DBNInference(Inference):
         nodes: iterable container
             A container of nodes (list, dict, set, etc.).
         """
-
-        return [clique for clique in junction_tree.nodes() if set(nodes).issubset(clique)][0]
+        pass
 
     def _get_evidence(self, evidence_dict, time_slice, shift):
         """
@@ -139,8 +138,7 @@ class DBNInference(Inference):
         shift: int
             shifting the evidence corresponding to the given time slice.
         """
-        if evidence_dict:
-            return {(node[0], shift): evidence_dict[node] for node in evidence_dict if node[1] == time_slice}
+        pass
 
     def _marginalize_factor(self, nodes, factor):
         """
@@ -154,8 +152,7 @@ class DBNInference(Inference):
         factor: factor
             factor which is to be marginalized.
         """
-        marginalizing_nodes = list(set(factor.scope()).difference(nodes))
-        return factor.marginalize(marginalizing_nodes, inplace=False)
+        pass
 
     def _update_belief(self, belief_prop, clique, clique_potential, message=None):
         """
@@ -172,18 +169,7 @@ class DBNInference(Inference):
         out_clique_potential: factor
             Multiplying factor which will be multiplied to the factor corresponding to the clique.
         """
-        old_factor = belief_prop.junction_tree.get_factors(clique)
-        belief_prop.junction_tree.remove_factors(old_factor)
-        if message:
-            if message.scope() and clique_potential.scope():
-                new_factor = old_factor * message
-                new_factor = new_factor / clique_potential
-            else:
-                new_factor = old_factor
-        else:
-            new_factor = old_factor * clique_potential
-        belief_prop.junction_tree.add_factors(new_factor)
-        belief_prop.calibrate()
+        pass
 
     def _get_factor(self, belief_prop, evidence):
         """
@@ -197,12 +183,7 @@ class DBNInference(Inference):
         evidence: dict
             a dict key, value pair as {var: state_of_var_observed}
         """
-        final_factor = factor_product(*belief_prop.junction_tree.get_factors())
-        if evidence:
-            for var in evidence:
-                if var in final_factor.scope():
-                    final_factor.reduce([(var, evidence[var])])
-        return final_factor
+        pass
 
     def _shift_factor(self, factor, shift):
         """
@@ -216,14 +197,7 @@ class DBNInference(Inference):
         shift: int
            The new timeslice to which the factor should belong to.
         """
-        new_scope = self._shift_nodes(factor.scope(), shift)
-
-        # Create new state names
-        new_state_names = {}
-        for i, var in enumerate(factor.scope()):
-            new_state_names[new_scope[i]] = factor.state_names[var]
-
-        return DiscreteFactor(new_scope, factor.cardinality, factor.values, state_names=new_state_names)
+        pass
 
     def forward_inference(self, variables, evidence=None, args=None):
         """
@@ -277,64 +251,7 @@ class DBNInference(Inference):
         ... )[("X", 2)].values
         array([0.76738736, 0.23261264])
         """
-        variable_dict = defaultdict(list)
-        for var in variables:
-            variable_dict[var[1]].append(var)
-
-        time_range = max(variable_dict)
-        if evidence:
-            evid_time_range = max([time_slice for var, time_slice in evidence.keys()])
-            time_range = max(time_range, evid_time_range)
-
-        start_bp = BeliefPropagation(self.start_junction_tree)
-        mid_bp = BeliefPropagation(self.one_and_half_junction_tree)
-        evidence_0 = self._get_evidence(evidence, 0, 0)
-        interface_nodes_dict = {}
-        potential_dict = {}
-
-        if evidence:
-            interface_nodes_dict = {k: v for k, v in evidence_0.items() if k in self.interface_nodes_0}
-        initial_factor = self._get_factor(start_bp, evidence_0)
-        marginalized_factor = self._marginalize_factor(self.interface_nodes_0, initial_factor)
-        potential_dict[0] = marginalized_factor
-        self._update_belief(mid_bp, self.in_clique, marginalized_factor)
-
-        if variable_dict[0]:
-            factor_values = start_bp.query(variable_dict[0], evidence=evidence_0, joint=False)
-        else:
-            factor_values = {}
-
-        for time_slice in range(1, time_range + 1):
-            evidence_time = self._get_evidence(evidence, time_slice, 1)
-            if interface_nodes_dict:
-                evidence_time.update(interface_nodes_dict)
-
-            if variable_dict[time_slice]:
-                variable_time = self._shift_nodes(variable_dict[time_slice], 1)
-                new_values = mid_bp.query(variable_time, evidence=evidence_time, joint=False)
-                changed_values = {}
-                for key in new_values.keys():
-                    new_key = (key[0], time_slice)
-                    new_factor = DiscreteFactor([new_key], new_values[key].cardinality, new_values[key].values)
-                    changed_values[new_key] = new_factor
-                factor_values.update(changed_values)
-
-            clique_phi = self._get_factor(mid_bp, evidence_time)
-            out_clique_phi = self._marginalize_factor(self.interface_nodes_1, clique_phi)
-            new_factor = self._shift_factor(out_clique_phi, 0)
-            potential_dict[time_slice] = new_factor
-            mid_bp = BeliefPropagation(self.one_and_half_junction_tree)
-            self._update_belief(mid_bp, self.in_clique, new_factor)
-
-            if evidence_time:
-                interface_nodes_dict = {(k[0], 0): v for k, v in evidence_time.items() if k in self.interface_nodes_1}
-            else:
-                interface_nodes_dict = {}
-
-        if args == "potential":
-            return potential_dict
-
-        return factor_values
+        pass
 
     def backward_inference(self, variables, evidence=None):
         """
@@ -387,51 +304,7 @@ class DBNInference(Inference):
         ... )[("X", 0)].values
         array([0.66594382, 0.33405618])
         """
-        variable_dict = defaultdict(list)
-        for var in variables:
-            variable_dict[var[1]].append(var)
-        time_range = max(variable_dict)
-        interface_nodes_dict = {}
-        if evidence:
-            evid_time_range = max([time_slice for var, time_slice in evidence.keys()])
-            time_range = max(time_range, evid_time_range)
-        end_bp = BeliefPropagation(self.start_junction_tree)
-        potential_dict = self.forward_inference(variables, evidence, "potential")
-        update_factor = self._shift_factor(potential_dict[time_range], 1)
-        factor_values = {}
-
-        for time_slice in range(time_range, 0, -1):
-            evidence_time = self._get_evidence(evidence, time_slice, 1)
-            evidence_prev_time = self._get_evidence(evidence, time_slice - 1, 0)
-            if evidence_prev_time:
-                interface_nodes_dict = {k: v for k, v in evidence_prev_time.items() if k in self.interface_nodes_0}
-            if evidence_time:
-                evidence_time.update(interface_nodes_dict)
-            mid_bp = BeliefPropagation(self.one_and_half_junction_tree)
-            self._update_belief(mid_bp, self.in_clique, potential_dict[time_slice - 1])
-            forward_factor = self._shift_factor(potential_dict[time_slice], 1)
-            self._update_belief(mid_bp, self.out_clique, forward_factor, update_factor)
-
-            if variable_dict[time_slice]:
-                variable_time = self._shift_nodes(variable_dict[time_slice], 1)
-                new_values = mid_bp.query(variable_time, evidence=evidence_time, joint=False)
-                changed_values = {}
-                for key in new_values.keys():
-                    new_key = (key[0], time_slice)
-                    new_factor = DiscreteFactor([new_key], new_values[key].cardinality, new_values[key].values)
-                    changed_values[new_key] = new_factor
-                factor_values.update(changed_values)
-
-            clique_phi = self._get_factor(mid_bp, evidence_time)
-            in_clique_phi = self._marginalize_factor(self.interface_nodes_0, clique_phi)
-            update_factor = self._shift_factor(in_clique_phi, 1)
-
-        out_clique_phi = self._shift_factor(update_factor, 0)
-        self._update_belief(end_bp, self.start_interface_clique, potential_dict[0], out_clique_phi)
-        evidence_0 = self._get_evidence(evidence, 0, 0)
-        if variable_dict[0]:
-            factor_values.update(end_bp.query(variable_dict[0], evidence_0, joint=False))
-        return factor_values
+        pass
 
     def query(self, variables, evidence=None, args="exact"):
         """
@@ -485,5 +358,4 @@ class DBNInference(Inference):
         ... ].values
         array([0.66594382, 0.33405618])
         """
-        if args == "exact":
-            return self.backward_inference(variables, evidence)
+        pass

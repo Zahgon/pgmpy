@@ -100,11 +100,7 @@ class DiscreteMarkovNetwork(UndirectedGraph):
         >>> G.add_nodes_from(["Alice", "Bob", "Charles"])
         >>> G.add_edge("Alice", "Bob")
         """
-        # check that there is no self loop.
-        if u != v:
-            super().add_edge(u, v, **kwargs)
-        else:
-            raise ValueError("Self loops are not allowed")
+        pass
 
     def add_factors(self, *factors):
         """
@@ -138,11 +134,7 @@ class DiscreteMarkovNetwork(UndirectedGraph):
         ... )
         >>> student.add_factors(factor)
         """
-        for factor in factors:
-            if set(factor.variables) - set(factor.variables).intersection(set(self.nodes())):
-                raise ValueError("Factors defined on variable not in the model", factor)
-
-            self.factors.append(factor)
+        pass
 
     def get_factors(self, node=None):
         """
@@ -172,16 +164,7 @@ class DiscreteMarkovNetwork(UndirectedGraph):
         >>> student.get_factors("Alice")  # doctest: +ELLIPSIS
         [<DiscreteFactor representing phi(Alice:2, Bob:2) at 0x...>]
         """
-        if node:
-            if node not in self.nodes():
-                raise ValueError("Node not present in the Undirected Graph")
-            node_factors = []
-            for factor in self.factors:
-                if node in factor.scope():
-                    node_factors.append(factor)
-            return node_factors
-        else:
-            return self.factors
+        pass
 
     def remove_factors(self, *factors):
         """
@@ -198,8 +181,7 @@ class DiscreteMarkovNetwork(UndirectedGraph):
         >>> student.add_factors(factor)
         >>> student.remove_factors(factor)
         """
-        for factor in factors:
-            self.factors.remove(factor)
+        pass
 
     def get_cardinality(self, node=None):
         """
@@ -228,17 +210,7 @@ class DiscreteMarkovNetwork(UndirectedGraph):
         >>> {k: int(v) for k, v in student.get_cardinality().items()}
         {'Alice': 2, 'Bob': 2}
         """
-        if node:
-            for factor in self.factors:
-                for variable, cardinality in zip(factor.scope(), factor.cardinality):
-                    if node == variable:
-                        return cardinality
-        else:
-            cardinalities = defaultdict(int)
-            for factor in self.factors:
-                for variable, cardinality in zip(factor.scope(), factor.cardinality):
-                    cardinalities[variable] = cardinality
-            return cardinalities
+        pass
 
     @property
     def states(self):
@@ -250,9 +222,7 @@ class DiscreteMarkovNetwork(UndirectedGraph):
         state_dict: dict
             Dictionary of nodes to possible states
         """
-        state_names_list = [phi.state_names for phi in self.factors]
-        state_dict = {node: states for d in state_names_list for node, states in d.items()}
-        return state_dict
+        pass
 
     def check_model(self):
         """
@@ -267,17 +237,7 @@ class DiscreteMarkovNetwork(UndirectedGraph):
         check: boolean
             True if all the checks are passed
         """
-        cardinalities = self.get_cardinality()
-        for factor in self.factors:
-            for variable, cardinality in zip(factor.scope(), factor.cardinality):
-                if cardinalities[variable] != cardinality:
-                    raise ValueError(f"Cardinality of variable {variable} not matching among factors")
-                if len(self.nodes()) != len(cardinalities):
-                    raise ValueError("Factors for all the variables not defined")
-            for var1, var2 in itertools.combinations(factor.variables, 2):
-                if var2 not in self.neighbors(var1):
-                    raise ValueError("DiscreteFactor inconsistent with the model.")
-        return True
+        pass
 
     def to_factor_graph(self):
         """
@@ -299,21 +259,7 @@ class DiscreteMarkovNetwork(UndirectedGraph):
         >>> student.add_factors(factor1, factor2)
         >>> factor_graph = student.to_factor_graph()
         """
-        from pgmpy.models import FactorGraph
-
-        factor_graph = FactorGraph()
-
-        if not self.factors:
-            raise ValueError("Factors not associated with the random variables.")
-
-        factor_graph.add_nodes_from(self.nodes())
-        for factor in self.factors:
-            scope = factor.scope()
-            factor_node = "phi_" + "_".join(scope)
-            factor_graph.add_edges_from(itertools.product(scope, [factor_node]))
-            factor_graph.add_factors(factor)
-
-        return factor_graph
+        pass
 
     def triangulate(self, heuristic="H6", order=None, inplace=False):
         """
@@ -378,136 +324,7 @@ class DiscreteMarkovNetwork(UndirectedGraph):
         >>> G.add_factors(*phi)
         >>> G_chordal = G.triangulate()
         """
-        self.check_model()
-
-        if self.is_triangulated():
-            if inplace:
-                return
-            else:
-                return self
-
-        graph_copy = nx.Graph(self.edges())
-        edge_set = set()
-
-        def _find_common_cliques(cliques_list):
-            """
-            Finds the common cliques among the given set of cliques for
-            corresponding node.
-            """
-            common = {tuple(x) for x in cliques_list[0]}
-            for i in range(1, len(cliques_list)):
-                common = common & {tuple(x) for x in cliques_list[i]}
-            return list(common)
-
-        def _find_size_of_clique(clique, cardinalities):
-            """
-            Computes the size of a clique.
-
-            Size of a clique is defined as product of cardinalities of all the
-            nodes present in the clique.
-            """
-            return list(map(lambda x: np.prod([cardinalities[node] for node in x]), clique))
-
-        def _get_cliques_dict(node):
-            """
-            Returns a dictionary in the form of {node: cliques_formed} of the
-            node along with its neighboring nodes.
-
-            clique_dict_removed would be containing the cliques created
-            after deletion of the node
-            clique_dict_node would be containing the cliques created before
-            deletion of the node
-            """
-            graph_working_copy = nx.Graph(graph_copy.edges())
-            neighbors = list(graph_working_copy.neighbors(node))
-            graph_working_copy.add_edges_from(itertools.combinations(neighbors, 2))
-
-            clique_dict = {var: [] for var in [node] + neighbors}
-            max_cliques = list(nx.find_cliques(graph_working_copy))
-            for var in [node] + neighbors:
-                for clique in max_cliques:
-                    if var in clique:
-                        clique_dict[var].append(clique)
-
-            graph_working_copy.remove_node(node)
-
-            clique_dict_removed = {var: [] for var in neighbors}
-            max_cliques = list(nx.find_cliques(graph_working_copy))
-            for var in neighbors:
-                for clique in max_cliques:
-                    if var in clique:
-                        clique_dict_removed[var].append(clique)
-
-            return clique_dict, clique_dict_removed
-
-        if not order:
-            order = []
-
-            cardinalities = self.get_cardinality()
-            for index in range(self.number_of_nodes()):
-                # S represents the size of clique created by deleting the
-                # node from the graph
-                S = {}
-                # M represents the size of maximum size of cliques given by
-                # the node and its adjacent node
-                M = {}
-                # C represents the sum of size of the cliques created by the
-                # node and its adjacent node
-                C = {}
-                for node in set(graph_copy.nodes()) - set(order):
-                    clique_dict, clique_dict_removed = _get_cliques_dict(node)
-                    S[node] = _find_size_of_clique(
-                        _find_common_cliques(list(clique_dict_removed.values())),
-                        cardinalities,
-                    )[0]
-                    common_clique_size = _find_size_of_clique(
-                        _find_common_cliques(list(clique_dict.values())), cardinalities
-                    )
-                    M[node] = np.max(common_clique_size)
-                    C[node] = np.sum(common_clique_size)
-
-                if heuristic == "H1":
-                    node_to_delete = min(S, key=S.get)
-
-                elif heuristic == "H2":
-                    S_by_E = {key: S[key] / cardinalities[key] for key in S}
-                    node_to_delete = min(S_by_E, key=S_by_E.get)
-
-                elif heuristic == "H3":
-                    S_minus_M = {key: S[key] - M[key] for key in S}
-                    node_to_delete = min(S_minus_M, key=S_minus_M.get)
-
-                elif heuristic == "H4":
-                    S_minus_C = {key: S[key] - C[key] for key in S}
-                    node_to_delete = min(S_minus_C, key=S_minus_C.get)
-
-                elif heuristic == "H5":
-                    S_by_M = {key: S[key] / M[key] for key in S}
-                    node_to_delete = min(S_by_M, key=S_by_M.get)
-
-                else:
-                    S_by_C = {key: S[key] / C[key] for key in S}
-                    node_to_delete = min(S_by_C, key=S_by_C.get)
-
-                order.append(node_to_delete)
-
-        graph_copy = nx.Graph(self.edges())
-        for node in order:
-            for edge in itertools.combinations(graph_copy.neighbors(node), 2):
-                graph_copy.add_edge(edge[0], edge[1])
-                edge_set.add(edge)
-            graph_copy.remove_node(node)
-
-        if inplace:
-            for edge in edge_set:
-                self.add_edge(edge[0], edge[1])
-            return self
-
-        else:
-            graph_copy = DiscreteMarkovNetwork(self.edges())
-            for edge in edge_set:
-                graph_copy.add_edge(edge[0], edge[1])
-            return graph_copy
+        pass
 
     def to_junction_tree(self):
         """
@@ -542,81 +359,7 @@ class DiscreteMarkovNetwork(UndirectedGraph):
         >>> mm.add_factors(*phi)
         >>> junction_tree = mm.to_junction_tree()
         """
-        from pgmpy.models import JunctionTree
-
-        # Get all the state names of the random variables
-        all_state_names = {}
-        for factor in self.factors:
-            all_state_names.update(factor.state_names)
-
-        # Check whether the model is valid or not
-        self.check_model()
-
-        # Triangulate the graph to make it chordal
-        triangulated_graph = self.triangulate()
-
-        # Find maximal cliques in the chordal graph
-        cliques = list(map(tuple, nx.find_cliques(triangulated_graph)))
-
-        # If there is only 1 clique, then the junction tree formed is just a
-        # clique tree with that single clique as the node
-        if len(cliques) == 1:
-            clique_trees = JunctionTree()
-            clique_trees.add_node(cliques[0])
-
-        # Else if the number of cliques is more than 1 then create a complete
-        # graph with all the cliques as nodes and weight of the edges being
-        # the length of sepset between two cliques
-        elif len(cliques) >= 2:
-            complete_graph = UndirectedGraph()
-            edges = list(itertools.combinations(cliques, 2))
-            weights = list(map(lambda x: len(set(x[0]).intersection(set(x[1]))), edges))
-            for edge, weight in zip(edges, weights):
-                complete_graph.add_edge(*edge, weight=-weight)
-
-            # Create clique trees by minimum (or maximum) spanning tree method
-            clique_trees = JunctionTree(nx.minimum_spanning_tree(complete_graph).edges())
-
-        # Check whether the factors are defined for all the random variables or not
-        all_vars = itertools.chain(*[factor.scope() for factor in self.factors])
-        if set(all_vars) != set(self.nodes()):
-            ValueError("DiscreteFactor for all the random variables not specified")
-
-        # Dictionary stating whether the factor is used to create clique
-        # potential or not
-        # If false, then it is not used to create any clique potential
-        is_used = dict.fromkeys(self.factors, False)
-
-        for node in clique_trees.nodes():
-            clique_factors = []
-            for factor in self.factors:
-                # If the factor is not used in creating any clique potential as
-                # well as has any variable of the given clique in its scope,
-                # then use it in creating clique potential
-                if not is_used[factor] and set(factor.scope()).issubset(node):
-                    clique_factors.append(factor)
-                    is_used[factor] = True
-
-            # To compute clique potential, initially set it as unity factor
-            var_card = [self.get_cardinality()[x] for x in node]
-            clique_potential = DiscreteFactor(
-                node,
-                var_card,
-                np.ones(np.prod(var_card)),
-                state_names={var: all_state_names.get(var, list(range(self.get_cardinality()[var]))) for var in node},
-            )
-            # multiply it with the factors associated with the variables present
-            # in the clique (or node)
-            # Checking if there's clique_factors, to handle the case when clique_factors
-            # is empty, otherwise factor_product with throw an error [ref #889]
-            if clique_factors:
-                clique_potential *= factor_product(*clique_factors)
-            clique_trees.add_factors(clique_potential)
-
-        if not all(is_used.values()):
-            raise ValueError("All the factors were not used to create Junction Tree.Extra factors are defined.")
-
-        return clique_trees
+        pass
 
     def markov_blanket(self, node):
         """
@@ -644,7 +387,7 @@ class DiscreteMarkovNetwork(UndirectedGraph):
         >>> mm.markov_blanket("x1")  # doctest: +ELLIPSIS
         <dict_keyiterator object at 0x...>
         """
-        return self.neighbors(node)
+        pass
 
     def get_local_independencies(self, latex=False):
         r"""
@@ -690,23 +433,7 @@ class DiscreteMarkovNetwork(UndirectedGraph):
         (x6 ⟂ x7, x5, x1, x2 | x3, x4)
         (x7 ⟂ x6, x1, x2, x3 | x5, x4)
         """
-        local_independencies = Independencies()
-
-        all_vars = set(self.nodes())
-        for node in self.nodes():
-            markov_blanket = set(self.markov_blanket(node))
-            rest = all_vars - {node} - markov_blanket
-            try:
-                local_independencies.add_assertions([node, list(rest), list(markov_blanket)])
-            except ValueError:
-                pass
-
-        local_independencies.reduce()
-
-        if latex:
-            return local_independencies.latex_string()
-        else:
-            return local_independencies
+        pass
 
     def to_bayesian_model(self):
         """
@@ -741,51 +468,7 @@ class DiscreteMarkovNetwork(UndirectedGraph):
         >>> mm.add_factors(*phi)
         >>> bm = mm.to_bayesian_model()
         """
-        from pgmpy.models import DiscreteBayesianNetwork
-
-        # If the graph is not connected, treat them as separate models and join them together in the end.
-        bms = []
-        for node_set in connected_components(self):
-            bm = DiscreteBayesianNetwork()
-            var_clique_dict = defaultdict(tuple)
-            var_order = []
-
-            subgraph = self.subgraph(node_set)
-
-            # Create a Junction Tree from the Markov Model.
-            # Creation of Clique Tree involves triangulation, finding maximal cliques
-            # and creating a tree from these cliques
-            junction_tree = DiscreteMarkovNetwork(subgraph.edges()).to_junction_tree()
-
-            # create an ordering of the nodes based on the ordering of the clique
-            # in which it appeared first
-            root_node = next(iter(junction_tree.nodes()))
-            bfs_edges = nx.bfs_edges(junction_tree, root_node)
-            for node in root_node:
-                var_clique_dict[node] = root_node
-                var_order.append(node)
-            for edge in bfs_edges:
-                clique_node = edge[1]
-                for node in clique_node:
-                    if not var_clique_dict[node]:
-                        var_clique_dict[node] = clique_node
-                        var_order.append(node)
-
-            # create a Bayesian Network by adding edges from parent of node to node as
-            # par(x_i) = (var(c_k) - x_i) \cap {x_1, ..., x_{i-1}}
-            for node_index in range(len(var_order)):
-                node = var_order[node_index]
-                node_parents = (set(var_clique_dict[node]) - {node}).intersection(set(var_order[:node_index]))
-                bm.add_edges_from([(parent, node) for parent in node_parents])
-                # TODO : Convert factor into CPDs
-            bms.append(bm)
-
-        # Join the bms in a single model.
-        final_bm = DiscreteBayesianNetwork()
-        for bm in bms:
-            final_bm.add_edges_from(bm.edges())
-            final_bm.add_nodes_from(bm.nodes())
-        return final_bm
+        pass
 
     def get_partition_function(self):
         r"""
@@ -822,14 +505,7 @@ class DiscreteMarkovNetwork(UndirectedGraph):
         >>> round(float(G.get_partition_function()), 3)
         0.82
         """
-        self.check_model()
-
-        factor = self.factors[0]
-        factor = factor_product(factor, *[self.factors[i] for i in range(1, len(self.factors))])
-        if set(factor.scope()) != set(self.nodes()):
-            raise ValueError("DiscreteFactor for all the random variables not defined.")
-
-        return compat_fns.sum(factor.values)
+        pass
 
     def copy(self):
         """
@@ -860,11 +536,4 @@ class DiscreteMarkovNetwork(UndirectedGraph):
         >>> G_copy.get_factors()
         []
         """
-        clone_graph = DiscreteMarkovNetwork(self.edges())
-        clone_graph.add_nodes_from(self.nodes())
-
-        if self.factors:
-            factors_copy = [factor.copy() for factor in self.factors]
-            clone_graph.add_factors(*factors_copy)
-
-        return clone_graph
+        pass

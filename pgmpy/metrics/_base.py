@@ -20,28 +20,7 @@ class _BaseSupervisedMetric(BaseObject):
         est_causal_graph: Instance of type pgmpy.base
             The estimated causal graph.
         """
-        if not isinstance(true_causal_graph, self._tags["supported_graph_types"]):
-            raise ValueError(
-                f"The true_causal_graph must be one of the following types: "
-                f"{self._tags['supported_graph_types']}, "
-                f"but got {type(true_causal_graph)} instead."
-            )
-
-        if not isinstance(est_causal_graph, self._tags["supported_graph_types"]):
-            raise ValueError(
-                f"The est_causal_graph must be one of the following types: "
-                f"{self._tags['supported_graph_types']}, "
-                f"but got {type(est_causal_graph)} instead."
-            )
-
-        if not set(true_causal_graph.nodes()) == set(est_causal_graph.nodes()):
-            raise ValueError("The `true_causal_graph` and `est_causal_graph` must be on the same nodes.")
-
-        return self._evaluate(
-            true_causal_graph=true_causal_graph,
-            est_causal_graph=est_causal_graph,
-            **kwargs,
-        )
+        pass
 
     def __call__(self, true_causal_graph, est_causal_graph, **kwargs):
         return self.evaluate(
@@ -68,22 +47,7 @@ class _BaseUnsupervisedMetric(BaseObject):
         causal_graph: Instance of type pgmpy.base
             The causal graph to be evaluated.
         """
-        if not isinstance(causal_graph, self._tags["supported_graph_types"]):
-            raise ValueError(
-                f"The causal_graph must be one of the following types: "
-                f"{self._tags['supported_graph_types']}, "
-                f"but got {type(causal_graph)} instead."
-            )
-
-        if not isinstance(X, pd.DataFrame):
-            raise ValueError(f"The data must be a pandas.DataFrame instance, but got {type(X)} instead.")
-        elif len(set(causal_graph.nodes()) - set(X.columns)) > 0:
-            raise ValueError(
-                "Missing columns in data. Can't find values for the following variables: "
-                f" {set(causal_graph.nodes()) - set(X.columns)}"
-            )
-
-        return self._evaluate(X=X, causal_graph=causal_graph, **kwargs)
+        pass
 
     def __call__(self, X, causal_graph, **kwargs):
         return self.evaluate(X=X, causal_graph=causal_graph, **kwargs)
@@ -109,9 +73,4 @@ def get_metrics(**kwargs):
     ValueError
         If no metric class matching the given tag filters is found.
     """
-    return all_objects(
-        object_types=[_BaseSupervisedMetric, _BaseUnsupervisedMetric],
-        package_name="pgmpy.metrics",
-        return_names=False,
-        filter_tags=kwargs,
-    )
+    pass

@@ -134,13 +134,7 @@ class JointProbabilityDistribution(DiscreteFactor):
         | x1(1) | x2(2) |     0.0619 |
         +-------+-------+------------+
         """
-        return self.marginalize(
-            list(
-                set(list(self.variables))
-                - set(variables if isinstance(variables, (list, set, dict, tuple)) else [variables])
-            ),
-            inplace=inplace,
-        )
+        pass
 
     def check_independence(self, event1, event2, event3=None, condition_random_variable=False):
         """
@@ -195,41 +189,7 @@ class JointProbabilityDistribution(DiscreteFactor):
         ... )
         False
         """
-        JPD = self.copy()
-        if isinstance(event1, str):
-            raise TypeError("Event 1 should be a list or array-like structure")
-
-        if isinstance(event2, str):
-            raise TypeError("Event 2 should be a list or array-like structure")
-
-        if event3:
-            if isinstance(event3, str):
-                raise TypeError("Event 3 cannot of type string")
-
-            elif condition_random_variable:
-                if not all(isinstance(var, str) for var in event3):
-                    raise TypeError("event3 should be a 1d list of strings")
-                event3 = list(event3)
-                # Using the definition of conditional independence
-                # If P(X,Y|Z) = P(X|Z)*P(Y|Z)
-                # This can be expanded to P(X,Y,Z)*P(Z) == P(X,Z)*P(Y,Z)
-                phi_z = JPD.marginal_distribution(event3, inplace=False).to_factor()
-                for variable_pair in itertools.product(event1, event2):
-                    phi_xyz = JPD.marginal_distribution(event3 + list(variable_pair), inplace=False).to_factor()
-                    phi_xz = JPD.marginal_distribution(event3 + [variable_pair[0]], inplace=False).to_factor()
-                    phi_yz = JPD.marginal_distribution(event3 + [variable_pair[1]], inplace=False).to_factor()
-                    if phi_xyz * phi_z != phi_xz * phi_yz:
-                        return False
-                return True
-            else:
-                JPD.conditional_distribution(event3)
-
-        for variable_pair in itertools.product(event1, event2):
-            if JPD.marginal_distribution(variable_pair, inplace=False) != JPD.marginal_distribution(
-                variable_pair[0], inplace=False
-            ) * JPD.marginal_distribution(variable_pair[1], inplace=False):
-                return False
-        return True
+        pass
 
     def get_independencies(self, condition=None):
         """
@@ -256,16 +216,7 @@ class JointProbabilityDistribution(DiscreteFactor):
         (x1 \u27c2 x3)
         (x2 \u27c2 x3)
         """
-        JPD = self.copy()
-        if condition:
-            JPD.conditional_distribution(condition)
-        independencies = Independencies()
-        for variable_pair in itertools.combinations(list(JPD.variables), 2):
-            if JPD.marginal_distribution(variable_pair, inplace=False) == JPD.marginal_distribution(
-                variable_pair[0], inplace=False
-            ) * JPD.marginal_distribution(variable_pair[1], inplace=False):
-                independencies.add_assertions(variable_pair)
-        return independencies
+        pass
 
     def conditional_distribution(self, values, inplace=True):
         """
@@ -302,11 +253,7 @@ class JointProbabilityDistribution(DiscreteFactor):
         | x2(1) | x3(1) |     0.2500 |
         +-------+-------+------------+
         """
-        JPD = self if inplace else self.copy()
-        JPD.reduce(values)
-        JPD.normalize()
-        if not inplace:
-            return JPD
+        pass
 
     def copy(self):
         """
@@ -330,7 +277,7 @@ class JointProbabilityDistribution(DiscreteFactor):
         >>> prob_copy.variables == prob.variables
         False
         """
-        return JointProbabilityDistribution(self.scope(), self.cardinality, self.values)
+        pass
 
     def minimal_imap(self, order):
         """
@@ -357,21 +304,7 @@ class JointProbabilityDistribution(DiscreteFactor):
         >>> bayesian_model.edges()
         OutEdgeView([('x2', 'x3'), ('x1', 'x3')])
         """
-        from pgmpy.models import DiscreteBayesianNetwork
-
-        def get_subsets(u):
-            for r in range(len(u) + 1):
-                yield from itertools.combinations(u, r)
-
-        G = DiscreteBayesianNetwork()
-        for variable_index in range(len(order)):
-            u = order[:variable_index]
-            for subset in get_subsets(u):
-                if len(subset) < len(u) and self.check_independence(
-                    [order[variable_index]], set(u) - set(subset), subset, True
-                ):
-                    G.add_edges_from([(variable, order[variable_index]) for variable in subset])
-        return G
+        pass
 
     def is_imap(self, model):
         """
@@ -433,17 +366,7 @@ class JointProbabilityDistribution(DiscreteFactor):
         >>> JPD.is_imap(bm)
         True
         """
-        from pgmpy.models import DiscreteBayesianNetwork
-
-        if not isinstance(model, DiscreteBayesianNetwork):
-            raise TypeError("model must be an instance of DiscreteBayesianNetwork")
-        factors = [cpd.to_factor() for cpd in model.get_cpds()]
-        factor_prod = reduce(mul, factors)
-        JPD_fact = DiscreteFactor(self.variables, self.cardinality, self.values)
-        if JPD_fact == factor_prod:
-            return True
-        else:
-            return False
+        pass
 
     def to_factor(self):
         """
@@ -460,7 +383,7 @@ class JointProbabilityDistribution(DiscreteFactor):
         >>> type(phi)
         <class 'pgmpy.factors.discrete.DiscreteFactor.DiscreteFactor'>
         """
-        return DiscreteFactor(self.variables, self.cardinality, self.values)
+        pass
 
     def pmap(self):
         pass

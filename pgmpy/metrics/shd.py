@@ -55,35 +55,4 @@ class SHD(_BaseSupervisedMetric):
 
     def _evaluate(self, true_causal_graph, est_causal_graph):
 
-        nodes_list = true_causal_graph.nodes()
-
-        dag_true = nx.DiGraph(true_causal_graph.edges())
-        dag_true.add_nodes_from(list(nx.isolates(true_causal_graph)))
-        m1 = nx.adjacency_matrix(dag_true, nodelist=nodes_list).todense()
-
-        dag_est = nx.DiGraph(est_causal_graph.edges())
-        dag_est.add_nodes_from(list(nx.isolates(est_causal_graph)))
-        m2 = nx.adjacency_matrix(dag_est, nodelist=nodes_list).todense()
-
-        shd = 0
-
-        s1 = m1 + m1.T
-        s2 = m2 + m2.T
-
-        # Edges that are in m1 but not in m2 (deletions from m1)
-        ds = s1 - s2
-        ind = np.where(ds > 0)
-        m1[ind] = 0
-        shd = shd + (len(ind[0]) / 2)
-
-        # Edges that are in m2 but not in m1 (additions to m1)
-        ind = np.where(ds < 0)
-        m1[ind] = m2[ind]
-        shd = shd + (len(ind[0]) / 2)
-
-        # Edges that need to be simply reversed
-        d = np.abs(m1 - m2)
-        reversal_count = np.sum((d + d.T) > 0) / 2
-        shd = shd + (reversal_count * self.edge_reverse_penalty)
-
-        return int(shd)
+        pass

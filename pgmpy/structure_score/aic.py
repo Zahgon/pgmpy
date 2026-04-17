@@ -60,7 +60,4 @@ class AIC(LogLikelihood):
         super().__init__(data, state_names=state_names)
 
     def _local_score(self, variable: str, parents: tuple[str, ...]) -> float:
-        ll, num_parents_states, var_cardinality = self._log_likelihood(variable=variable, parents=parents)
-        score = ll - num_parents_states * (var_cardinality - 1)
-
-        return score
+        pass

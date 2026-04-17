@@ -88,12 +88,7 @@ class Independencies:
         >>> IndependenceAssertion("X", "Y", "Z") in Independencies(["X", "Y"])
         False
         """
-        if not isinstance(assertion, IndependenceAssertion):
-            raise TypeError(
-                f"' in <Independencies()>' requires IndependenceAssertion as left operand, not {type(assertion)}"
-            )
-
-        return assertion in self.get_assertions()
+        pass
 
     __contains__ = contains
 
@@ -101,7 +96,7 @@ class Independencies:
         """
         Returns a set of all the variables in all the independence assertions.
         """
-        return frozenset().union(*[ind.all_vars for ind in self.independencies])
+        pass
 
     def get_assertions(self):
         """
@@ -114,7 +109,7 @@ class Independencies:
         >>> independencies.get_assertions()
         [(X ⟂ Y | Z)]
         """
-        return self.independencies
+        pass
 
     def add_assertions(self, *assertions):
         """
@@ -132,14 +127,7 @@ class Independencies:
         >>> independencies.add_assertions(["X", "Y", "Z"])
         >>> independencies.add_assertions(["a", ["b", "c"], "d"])
         """
-        for assertion in assertions:
-            if isinstance(assertion, IndependenceAssertion):
-                self.independencies.append(assertion)
-            else:
-                try:
-                    self.independencies.append(IndependenceAssertion(assertion[0], assertion[1], assertion[2]))
-                except IndexError:
-                    self.independencies.append(IndependenceAssertion(assertion[0], assertion[1]))
+        pass
 
     def closure(self):
         """
@@ -166,89 +154,7 @@ class Independencies:
         >>> len(result2.get_assertions()) >= 9
         True
         """
-
-        def single_var(var):
-            "Checks if var represents a single variable"
-            if not hasattr(var, "__iter__"):
-                return True
-            else:
-                return len(var) == 1
-
-        def sg0(ind):
-            "Symmetry rule: 'X ⟂ Y | Z' -> 'Y ⟂ X | Z'"
-            return IndependenceAssertion(ind.event2, ind.event1, ind.event3)
-
-        # since X⟂Y|Z == Y⟂X|Z in pgmpy, sg0 (symmetry) is not used as an axiom/rule.
-        # instead we use a decorator for the other axioms to apply them on both sides
-        def apply_left_and_right(func):
-            def symmetric_func(*args):
-                if len(args) == 1:
-                    return func(args[0]) + func(sg0(args[0]))
-                if len(args) == 2:
-                    return (
-                        func(*args)
-                        + func(args[0], sg0(args[1]))
-                        + func(sg0(args[0]), args[1])
-                        + func(sg0(args[0]), sg0(args[1]))
-                    )
-
-            return symmetric_func
-
-        @apply_left_and_right
-        def sg1(ind):
-            "Decomposition rule: 'X ⟂ Y,W | Z' -> 'X ⟂ Y | Z', 'X ⟂ W | Z'"
-            if single_var(ind.event2):
-                return []
-            else:
-                return [IndependenceAssertion(ind.event1, ind.event2 - {elem}, ind.event3) for elem in ind.event2]
-
-        @apply_left_and_right
-        def sg2(ind):
-            "Weak Union rule: 'X ⟂ Y,W | Z' -> 'X ⟂ Y | W,Z', 'X ⟂ W | Y,Z'"
-            if single_var(ind.event2):
-                return []
-            else:
-                return [
-                    IndependenceAssertion(ind.event1, ind.event2 - {elem}, {elem} | ind.event3) for elem in ind.event2
-                ]
-
-        @apply_left_and_right
-        def sg3(ind1, ind2):
-            "Contraction rule: 'X ⟂ W | Y,Z' & 'X ⟂ Y | Z' -> 'X ⟂ W,Y | Z'"
-            if ind1.event1 != ind2.event1:
-                return []
-
-            Y = ind2.event2
-            Z = ind2.event3
-            Y_Z = ind1.event3
-            if Y < Y_Z and Z < Y_Z and Y.isdisjoint(Z):
-                return [IndependenceAssertion(ind1.event1, ind1.event2 | Y, Z)]
-            else:
-                return []
-
-        # apply semi-graphoid axioms as long as new independencies are found.
-        all_independencies = set()
-        new_inds = set(self.independencies)
-
-        while new_inds:
-            new_pairs = (
-                set(itertools.permutations(new_inds, 2))
-                | set(itertools.product(new_inds, all_independencies))
-                | set(itertools.product(all_independencies, new_inds))
-            )
-
-            all_independencies |= new_inds
-            new_inds = set(
-                sum(
-                    [sg1(ind) for ind in new_inds]
-                    + [sg2(ind) for ind in new_inds]
-                    + [sg3(*inds) for inds in new_pairs],
-                    [],
-                )
-            )
-            new_inds -= all_independencies
-
-        return Independencies(*list(all_independencies))
+        pass
 
     def entails(self, entailed_independencies):
         """
@@ -271,11 +177,7 @@ class Independencies:
         >>> ind2.entails(ind1)
         False
         """
-        if not isinstance(entailed_independencies, Independencies):
-            return False
-
-        implications = self.closure().get_assertions()
-        return all(ind in implications for ind in entailed_independencies.get_assertions())
+        pass
 
     def is_equivalent(self, other):
         """
@@ -302,7 +204,7 @@ class Independencies:
         >>> ind1.is_equivalent(ind3)
         True
         """
-        return self.entails(other) and other.entails(self)
+        pass
 
     def reduce(self, inplace=False):
         """
@@ -321,44 +223,14 @@ class Independencies:
             If True, the Independencies object will permanently removes duplicate or redundant Independence Assertions.
 
         """
-        unique_assertions = set(self.independencies)
-        reduced_assertions = []
-
-        for assertion in unique_assertions:
-            temp_independencies = Independencies(*reduced_assertions)
-            assertion_temp = Independencies(assertion)
-
-            if not temp_independencies.entails(assertion_temp):
-                removed_any = True
-                while removed_any:
-                    removed_any = False
-                    # Create a copy to iterate over since we might modify reduced_assertions
-                    for existing_assertion in reduced_assertions[:]:
-                        existing_temp = Independencies(existing_assertion)
-
-                        if existing_temp != assertion_temp:
-                            remove_old = not existing_temp.entails(assertion_temp) and assertion_temp.entails(
-                                existing_temp
-                            )
-
-                            if remove_old:
-                                reduced_assertions.remove(existing_assertion)
-                                removed_any = True
-                                break
-
-                reduced_assertions.append(assertion)
-
-        if inplace:
-            self.independencies = reduced_assertions
-
-        return Independencies(*reduced_assertions)
+        pass
 
     def latex_string(self) -> list[str]:
         """
         Returns a list of string.
         Each string represents the IndependenceAssertion in latex.
         """
-        return [assertion.latex_string() for assertion in self.get_assertions()]
+        pass
 
     def get_factorized_product(self, random_variables=None, latex=False):
         # TODO: Write this whole function
@@ -474,10 +346,7 @@ class IndependenceAssertion:
         If variable is a string returns a list containing variable.
         Else returns variable itself.
         """
-        if isinstance(event, str):
-            return [event]
-        else:
-            return event
+        pass
 
     def get_assertion(self):
         """
@@ -490,17 +359,7 @@ class IndependenceAssertion:
         >>> asser.get_assertion()
         (frozenset({'X'}), frozenset({'Y'}), frozenset({'Z'}))
         """
-        return self.event1, self.event2, self.event3
+        pass
 
     def latex_string(self):
-        if len(self.event3) == 0:
-            return r"{event1} \perp {event2}".format(
-                event1=", ".join([str(e) for e in self.event1]),
-                event2=", ".join([str(e) for e in self.event2]),
-            )
-        else:
-            return r"{event1} \perp {event2} \mid {event3}".format(
-                event1=", ".join([str(e) for e in self.event1]),
-                event2=", ".join([str(e) for e in self.event2]),
-                event3=", ".join([str(e) for e in self.event3]),
-            )
+        pass

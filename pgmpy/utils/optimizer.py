@@ -21,9 +21,7 @@ def pinverse(t):
     -------
     torch.tensor: Inverse of the matrix `t`.
     """
-    u, s, v = t.svd()
-    t_inv = v @ torch.diag(torch.where(s != 0, 1 / s, s)) @ u.t()
-    return t_inv
+    pass
 
 
 def optimize(loss_fn, params={}, loss_args={}, opt="adam", max_iter=10000, exit_delta=1e-4):
@@ -72,41 +70,4 @@ def optimize(loss_fn, params={}, loss_args={}, opt="adam", max_iter=10000, exit_
     Examples
     --------
     """
-    # TODO: Add option to modify the optimizers.
-    init_loss = float("inf")
-
-    if isinstance(opt, str):
-        opt_dict = {
-            "adadelta": optim.Adadelta,
-            "adagrad": optim.Adagrad,
-            "adam": optim.Adam,
-            "sparseadam": optim.SparseAdam,
-            "adamax": optim.Adamax,
-            "asgd": optim.ASGD,
-            "lbfgs": optim.LBFGS,
-            "rmsprop": optim.RMSprop,
-            "rprop": optim.Rprop,
-            "sgd": optim.SGD,
-        }
-        opt = opt_dict[opt.lower()](params.values())
-
-    for t in range(max_iter):
-
-        def closure():
-            opt.zero_grad()
-            loss = loss_fn(params, loss_args)
-            loss.backward()
-            return loss
-
-        opt.step(closure=closure)
-
-        if isclose(init_loss, closure().item(), abs_tol=exit_delta):
-            logger.info(f"Converged after {t} iterations.")
-            return params
-        else:
-            init_loss = closure().item()
-
-    logger.info(
-        f"Couldn't converge after {max_iter} iterations. Try increasing max_iter or change optimizer parameters"
-    )
-    return params
+    pass

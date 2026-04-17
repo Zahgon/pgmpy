@@ -198,85 +198,8 @@ class NaiveIVRegressor(_BaseCausalPrediction):
         self : object
             Fitted estimator.
         """
-
-        # Step 0: validate Inputs
-        validate_data(
-            self,
-            X,
-            y,
-            accept_sparse=False,
-            ensure_2d=True,
-            ensure_min_features=2,
-            dtype="numeric",
-        )
-
-        # Step 1: Initialize data structures and read roles from DAG.
-
-        if self.stage1_estimator is None:
-            self.stage1_estimator = LinearRegression()
-        if self.stage2_estimator is None:
-            self.stage2_estimator = LinearRegression()
-
-        stage1_estimator = clone(self.stage1_estimator)
-        stage2_estimator = clone(self.stage2_estimator)
-
-        # Step 1.1: Get roles from the causal graph and assign to attributes.
-        exposure_vars = self.causal_graph.get_role("exposures")
-        outcome_vars = self.causal_graph.get_role("outcomes")
-        instrument_vars = self.causal_graph.get_role("instrument")
-
-        # Step 1.2: Validate that exactly one exposure, one outcome and atleast one instrument are specified.
-        if len(exposure_vars) != 1:
-            raise ValueError(f"The current implementation only works for a single exposure; got {len(exposure_vars)}")
-        if len(outcome_vars) != 1:
-            raise ValueError(f"The current implementation only works for a single outcome; got {len(outcome_vars)}")
-        if len(instrument_vars) < 1:
-            raise ValueError("NaiveIVRegressor requires at least one instrument.")
-
-        self.exposure_var_ = exposure_vars[0]
-        self.outcome_var_ = outcome_vars[0]
-        self.instrument_vars_ = instrument_vars
-        self.pretreatment_vars_ = self.causal_graph.get_role("pretreatment")
-        self.feature_columns_fit_ = [self.exposure_var_] + self.instrument_vars_ + self.pretreatment_vars_
-
-        # Step 1.2: Prepare feature dataframes and sample weights
-        df = self._prepare_feature_df(X, required_features=self.feature_columns_fit_)
-
-        self.feature_columns_predict_ = [self.exposure_var_] + self.pretreatment_vars_
-
-        exposure_df = df[self.exposure_var_]
-        instrument_df = df[self.instrument_vars_]
-        pretreatment_df = df[self.pretreatment_vars_]
-
-        # Step 2: fit stage1: E ~ Z
-        stage1_estimator.fit(instrument_df, exposure_df, sample_weight=sample_weight)
-        t_hat = stage1_estimator.predict(instrument_df)
-
-        # Step 2.1: fit stage2: Y ~ t_hat + X
-        t_hat_2d = pd.DataFrame(t_hat.reshape(-1, 1), columns=[self.exposure_var_])
-        covariates_df = pd.concat([t_hat_2d, pretreatment_df], axis=1)
-        stage2_estimator.fit(covariates_df, y, sample_weight=sample_weight)
-
-        # step 3: Store fitted estimators and coefficients
-        self.stage1_est_ = stage1_estimator
-        self.stage2_est_ = stage2_estimator
-        self.coef_ = self.stage2_est_.coef_
-
-        return self
+        pass
 
     def predict(self, X):
         # Step 0: Validate Inputs and check if fit has been called
-        check_is_fitted(self, "stage1_est_")
-        check_is_fitted(self, "stage2_est_")
-
-        validate_data(self, X, accept_sparse=False, ensure_2d=True, dtype="numeric", reset=False)
-
-        # Step 1: Prepare feature DataFrame for prediction
-        X_df = self._prepare_feature_df(X, required_features=self.feature_columns_predict_)
-
-        exposure = X_df[self.exposure_var_]
-        pre_treatment = X_df[self.pretreatment_vars_]
-
-        # Step 2: Predict using stage2 estimator
-        y_pred = self.stage2_est_.predict(pd.concat([exposure, pre_treatment], axis=1))
-        return y_pred
+        pass

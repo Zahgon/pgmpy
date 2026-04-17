@@ -70,36 +70,4 @@ class FisherC(_BaseUnsupervisedMetric):
         self.show_progress = show_progress
 
     def _evaluate(self, X, causal_graph):
-        if len(causal_graph.latents) > 0:
-            raise ValueError("This test can not be performed on models with latent variables.")
-
-        cis = []
-        ci_test = get_ci_test(test=self.ci_test, data=X)
-
-        if self.show_progress and config.SHOW_PROGRESS:
-            comb_iter = tqdm(
-                combinations(causal_graph.nodes(), 2),
-                total=math.comb(len(causal_graph.nodes()), 2),
-            )
-        else:
-            comb_iter = combinations(causal_graph.nodes(), 2)
-
-        for u, v in comb_iter:
-            if not ((u in causal_graph[v]) or (v in causal_graph[u])):
-                Z = set(causal_graph.predecessors(u)).union(causal_graph.predecessors(v))
-                ci_test.is_independent(X=u, Y=v, Z=list(Z))
-                cis.append([u, v, Z, ci_test.p_value_])
-        cis = pd.DataFrame(cis, columns=["u", "v", "cond_vars", "p_value"])
-        cis.loc[:, "p_value"] = cis.loc[:, "p_value"].clip(lower=1e-6)
-
-        C = -2 * np.log(cis.loc[:, "p_value"]).sum()
-        p_value = 1 - stats.chi2.cdf(C, df=2 * cis.shape[0])
-        rmsea = np.nan
-
-        if self.compute_rmsea:
-            if len(X) != 1 and len(cis) != 0:
-                rmsea = np.sqrt(max((C - 2 * len(cis)) / (2 * len(cis) * (len(X) - 1)), 0))
-            return (p_value, rmsea)
-
-        else:
-            return p_value
+        pass

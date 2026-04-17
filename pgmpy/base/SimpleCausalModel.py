@@ -98,22 +98,7 @@ class SimpleCausalModel(DAG):
 
     @staticmethod
     def _to_list(var, role=None):
-        if var is None:
-            return []
-        elif isinstance(var, str):
-            return [var]
-        elif isinstance(var, int):
-            prefix = {
-                "exposures": "E_",
-                "outcomes": "O_",
-                "confounders": "X_",
-                "mediators": "M_",
-                "instruments": "I_",
-            }.get(role, "Var_")
-            return [f"{prefix}{i}" for i in range(var)]
-        elif isinstance(var, Iterable):
-            return [str(v) for v in var]
-        return list(var)
+        pass
 
     def __init__(
         self,

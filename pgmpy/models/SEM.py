@@ -142,10 +142,7 @@ class SEMGraph:
         """
         Checks if the variable names contain any non-string values. Used only for CausalInference class.
         """
-        for node in list(self.graph.nodes()):
-            if not isinstance(node, str):
-                return (node, type(node))
-        return False
+        pass
 
     def _get_full_graph_struct(self):
         """
@@ -176,15 +173,7 @@ class SEMGraph:
         ... )
         >>> sem._get_full_graph_struct()
         """
-        full_graph = self.graph.copy()
-
-        mapping_dict = {"." + node: node for node in self.err_graph.nodes}
-        full_graph.add_edges_from([(u, v) for u, v in mapping_dict.items()])
-        for u, v in self.err_graph.edges:
-            cov_node = ".." + "".join(sorted([u, v]))
-            full_graph.add_edges_from([(cov_node, "." + u), (cov_node, "." + v)])
-
-        return full_graph
+        pass
 
     def get_scaling_indicators(self):
         """
@@ -213,13 +202,7 @@ class SEMGraph:
         dict: Returns a dict with latent variables as the key and their value being the
                 scaling indicator.
         """
-        scaling_indicators = {}
-        for node in self.latents:
-            for neighbor in self.graph.neighbors(node):
-                if neighbor in self.observed:
-                    scaling_indicators[node] = neighbor
-                    break
-        return scaling_indicators
+        pass
 
     def active_trail_nodes(self, variables, observed=[], avoid_nodes=[], struct="full"):
         """
@@ -272,51 +255,7 @@ class SEMGraph:
         Principles and Techniques' - Koller and Friedman
         Page 75 Algorithm 3.1
         """
-        if struct == "full":
-            graph_struct = self.full_graph_struct
-        elif struct == "non_error":
-            graph_struct = self.graph
-        elif isinstance(struct, nx.DiGraph):
-            graph_struct = struct
-        else:
-            raise ValueError(f"Expected struct to be str or nx.DiGraph. Got {type(struct)}")
-
-        ancestors_list = set()
-        for node in observed:
-            ancestors_list = ancestors_list.union(nx.algorithms.dag.ancestors(graph_struct, node))
-
-        # Direction of flow of information
-        # up ->  from parent to child
-        # down -> from child to parent
-
-        active_trails = {}
-        for start in variables if isinstance(variables, (list, tuple)) else [variables]:
-            visit_list = set()
-            visit_list.add((start, "up"))
-            traversed_list = set()
-            active_nodes = set()
-            while visit_list:
-                node, direction = visit_list.pop()
-                if node in avoid_nodes:
-                    continue
-                if (node, direction) not in traversed_list:
-                    if (node not in observed) and (not node.startswith(".")) and (node not in self.latents):
-                        active_nodes.add(node)
-                    traversed_list.add((node, direction))
-                    if direction == "up" and node not in observed:
-                        for parent in graph_struct.predecessors(node):
-                            visit_list.add((parent, "up"))
-                        for child in graph_struct.successors(node):
-                            visit_list.add((child, "down"))
-                    elif direction == "down":
-                        if node not in observed:
-                            for child in graph_struct.successors(node):
-                                visit_list.add((child, "down"))
-                        if node in ancestors_list:
-                            for parent in graph_struct.predecessors(node):
-                                visit_list.add((parent, "up"))
-            active_trails[start] = active_nodes
-        return active_trails
+        pass
 
     def moralize(self, graph="full"):
         """
@@ -334,19 +273,7 @@ class SEMGraph:
         Examples
         --------
         """
-        if graph == "full":
-            graph = self.full_graph_struct
-        elif isinstance(graph, nx.DiGraph):
-            graph = graph
-        else:
-            graph = self.graph
-
-        moral_graph = graph.to_undirected()
-
-        for node in graph.nodes():
-            moral_graph.add_edges_from(itertools.combinations(graph.predecessors(node), 2))
-
-        return moral_graph
+        pass
 
     def _nearest_separator(self, G, Y, Z):
         """
@@ -367,43 +294,7 @@ class SEMGraph:
         -------
         set or None: If there is a nearest separator returns the set of separators else returns None.
         """
-        W = set()
-        ancestral_G = G.subgraph(nx.ancestors(G, Y).union(nx.ancestors(G, Z)).union({Y, Z})).copy()
-
-        # Optimization: Remove all error nodes which don't
-        #  have any correlation as it doesn't add any new path.
-        #  If not removed it can create a lot of
-        # extra paths resulting in a much higher runtime.
-        err_nodes_to_remove = set(self.err_graph.nodes()) - {node for edge in self.err_graph.edges() for node in edge}
-        ancestral_G.remove_nodes_from(["." + node for node in err_nodes_to_remove])
-
-        M = self.moralize(graph=ancestral_G)
-        visited = {Y}
-        to_visit = list(M.neighbors(Y))
-
-        # Another optimization over the original algo. Rather than going through all the paths does
-        # a DFS search to find a markov blanket of observed variables. This doesn't ensure minimal observed
-        # set.
-        while to_visit:
-            node = to_visit.pop()
-            if node == Z:
-                return None
-            visited.add(node)
-            if node in self.observed:
-                W.add(node)
-            else:
-                to_visit.extend([node for node in M.neighbors(node) if node not in visited])
-        # for path in nx.all_simple_paths(M, Y, Z):
-        #     path_set = set(path)
-        #     if (len(path) >= 3) and not (W & path_set):
-        #         for index in range(1, len(path)-1):
-        #             if path[index] in self.observed:
-        #                 W.add(path[index])
-        #                 break
-        if Y not in self.active_trail_nodes([Z], observed=W, struct=ancestral_G)[Z]:
-            return W
-        else:
-            return None
+        pass
 
     def to_lisrel(self):
         r"""
@@ -438,32 +329,7 @@ class SEMGraph:
         --------
         to_standard_lisrel: Converts to the standard lisrel format and returns the parameters.
         """
-        nodelist = list(self.observed) + list(self.latents)
-        graph_adj = nx.to_numpy_array(self.graph, nodelist=nodelist, weight=None)
-        graph_fixed = np.nan_to_num(nx.to_numpy_array(self.graph, nodelist=nodelist, weight="weight"))
-
-        err_adj = nx.to_numpy_array(self.err_graph, nodelist=nodelist, weight=None)
-        np.fill_diagonal(err_adj, 1.0)  # Variance exists for each error term.
-        err_fixed = np.nan_to_num(nx.to_numpy_array(self.err_graph, nodelist=nodelist, weight="weight"))
-
-        # Add the variance of the error terms.
-        for index, node in enumerate(nodelist):
-            weight = self.err_graph.nodes[node]["weight"]
-            err_fixed[index, index] = 0.0 if np.isnan(weight) else weight
-
-        wedge_y = np.zeros((len(self.observed), len(nodelist)), dtype=int)
-        for index, obs_var in enumerate(self.observed):
-            wedge_y[index][nodelist.index(obs_var)] = 1.0
-
-        from pgmpy.models import SEMAlg
-
-        return SEMAlg(
-            eta=nodelist,
-            B=graph_adj.T,
-            zeta=err_adj.T,
-            wedge_y=wedge_y,
-            fixed_values={"B": graph_fixed.T, "zeta": err_fixed.T},
-        )
+        pass
 
     @staticmethod
     def __standard_lisrel_masks(graph, err_graph, weight, var):
@@ -498,54 +364,7 @@ class SEMGraph:
         Examples
         --------
         """
-        # Arrange the adjacency matrix in order y, x, eta, xi and then slice masks from it.
-        #       y(p)   x(q)   eta(m)  xi(n)
-        # y
-        # x
-        # eta \wedge_y          B
-        # xi         \wedge_x \Gamma
-        #
-        # But here we are slicing from the transpose of adjacency because we want incoming
-        # edges instead of outgoing because parameters come before variables in equations.
-        #
-        #       y(p)   x(q)   eta(m)  xi(n)
-        # y                  \wedge_y
-        # x                          \wedge_x
-        # eta                   B    \Gamma
-        # xi
-        y_vars, x_vars, eta_vars, xi_vars = var["y"], var["x"], var["eta"], var["xi"]
-
-        p, q, m, _n = (len(y_vars), len(x_vars), len(eta_vars), len(xi_vars))
-
-        nodelist = y_vars + x_vars + eta_vars + xi_vars
-        adj_matrix = nx.to_numpy_array(graph, nodelist=nodelist, weight=weight).T
-
-        B_mask = adj_matrix[p + q : p + q + m, p + q : p + q + m]
-        gamma_mask = adj_matrix[p + q : p + q + m, p + q + m :]
-        wedge_y_mask = adj_matrix[0:p, p + q : p + q + m]
-        wedge_x_mask = adj_matrix[p : p + q, p + q + m :]
-
-        err_nodelist = y_vars + x_vars + eta_vars + xi_vars
-        err_adj_matrix = nx.to_numpy_array(err_graph, nodelist=err_nodelist, weight=weight)
-
-        if not weight == "weight":
-            np.fill_diagonal(err_adj_matrix, 1.0)
-
-        theta_e_mask = err_adj_matrix[:p, :p]
-        theta_del_mask = err_adj_matrix[p : p + q, p : p + q]
-        psi_mask = err_adj_matrix[p + q : p + q + m, p + q : p + q + m]
-        phi_mask = err_adj_matrix[p + q + m :, p + q + m :]
-
-        return {
-            "B": B_mask,
-            "gamma": gamma_mask,
-            "wedge_y": wedge_y_mask,
-            "wedge_x": wedge_x_mask,
-            "phi": phi_mask,
-            "theta_e": theta_e_mask,
-            "theta_del": theta_del_mask,
-            "psi": psi_mask,
-        }
+        pass
 
     def to_standard_lisrel(self):
         r"""
@@ -587,66 +406,7 @@ class SEMGraph:
         --------
         TODO: Finish this.
         """
-        lisrel_err_graph = self.err_graph.copy()
-        lisrel_latents = self.latents.copy()
-
-        # Add new latent nodes to convert it to LISREL format.
-        mapping = {}
-        for u, v in self.graph.edges:
-            if (u not in self.latents) and (v in self.latents):
-                mapping[u] = "_l_" + u
-            elif (u not in self.latents) and (v not in self.latents):
-                mapping[u] = "_l_" + u
-        lisrel_latents.update(mapping.values())
-        lisrel_graph = nx.relabel_nodes(self.graph, mapping, copy=True)
-        for u, v in mapping.items():
-            lisrel_graph.add_edge(v, u, weight=1.0)
-
-        # Get values of eta, xi, y, x
-        latent_struct = lisrel_graph.subgraph(lisrel_latents)
-        latent_indegree = lisrel_graph.in_degree()
-
-        eta = []
-        xi = []
-        for node in latent_struct.nodes():
-            if latent_indegree[node]:
-                eta.append(node)
-            else:
-                xi.append(node)
-
-        x = set()
-        y = set()
-        for exo in xi:
-            x.update([x for x in lisrel_graph.neighbors(exo) if x not in lisrel_latents])
-        for endo in eta:
-            y.update([y for y in lisrel_graph.neighbors(endo) if y not in lisrel_latents])
-
-        # If some node has edges from both eta and xi, replace it with another latent variable
-        # otherwise it won't get included in any of the matrices.
-        # TODO: Patchy work. Find a better solution.
-        common_elements = set(x).intersection(set(y))
-        if common_elements:
-            mapping = {}
-            for var in common_elements:
-                mapping[var] = "_l_" + var
-            lisrel_graph = nx.relabel_nodes(lisrel_graph, mapping, copy=True)
-            for v, u in mapping.items():
-                lisrel_graph.add_edge(u, v, weight=1.0)
-            eta.extend(mapping.values())
-            x = list(set(x) - common_elements)
-            y.update(common_elements)
-
-        var_names = {"eta": eta, "xi": xi, "y": list(y), "x": list(x)}
-        edges_masks = self.__standard_lisrel_masks(
-            graph=lisrel_graph, err_graph=lisrel_err_graph, weight=None, var=var_names
-        )
-        fixed_masks = self.__standard_lisrel_masks(
-            graph=lisrel_graph,
-            err_graph=lisrel_err_graph,
-            weight="weight",
-            var=var_names,
-        )
-        return (var_names, edges_masks, fixed_masks)
+        pass
 
 
 class SEMAlg:
@@ -737,32 +497,7 @@ class SEMAlg:
         >>> model = SEMAlg()
         # TODO: Finish this example
         """
-
-        err_var = {var: np.diag(self.zeta)[i] for i, var in enumerate(self.eta)}
-        graph = nx.relabel_nodes(
-            nx.from_numpy_array(self.B.T, create_using=nx.DiGraph),
-            mapping={i: self.eta[i] for i in range(self.B.shape[0])},
-        )
-        # Fill zeta diagonal with 0's as they represent variance and would add self loops in the graph.
-        zeta = self.zeta.copy()
-        np.fill_diagonal(zeta, 0)
-        err_graph = nx.relabel_nodes(
-            nx.from_numpy_array(zeta.T, create_using=nx.Graph),
-            mapping={i: self.eta[i] for i in range(self.zeta.shape[0])},
-        )
-
-        latents = set(self.eta) - set(self.y)
-
-        from pgmpy.models import SEMGraph
-
-        # TODO: Add edge weights
-        sem_graph = SEMGraph(
-            ebunch=graph.edges(),
-            latents=latents,
-            err_corr=err_graph.edges(),
-            err_var=err_var,
-        )
-        return sem_graph
+        pass
 
     def set_params(self, B, zeta):
         """
@@ -776,8 +511,7 @@ class SEMAlg:
         zeta: 2D array
             The covariance matrix.
         """
-        self.B_fixed_mask = B
-        self.zeta_fixed_mask = zeta
+        pass
 
     def generate_samples(self, n_samples=100):
         """
@@ -792,29 +526,7 @@ class SEMAlg:
         -------
         pd.DataFrame: The generated samples.
         """
-        if (self.B_fixed_mask is None) or (self.zeta_fixed_mask is None):
-            raise ValueError("Parameters for the model has not been specified.")
-
-        B_inv = np.linalg.inv(np.eye(self.B_fixed_mask.shape[0]) - self.B_fixed_mask)
-        implied_cov = self.wedge_y @ B_inv @ self.zeta_fixed_mask @ B_inv.T @ self.wedge_y.T
-
-        # Check if implied covariance matrix is positive definite.
-        if not np.all(np.linalg.eigvals(implied_cov) > 0):
-            raise ValueError(
-                "The implied covariance matrix is not positive definite." + "Please check model parameters."
-            )
-
-        # Get the order of observed variables
-        x_index, y_index = np.nonzero(self.wedge_y)
-        observed = [self.eta[i] for i in y_index]
-
-        # Generate samples and return a dataframe.
-        samples = np.random.multivariate_normal(
-            mean=[0 for i in range(implied_cov.shape[0])],
-            cov=implied_cov,
-            size=n_samples,
-        )
-        return pd.DataFrame(samples, columns=observed)
+        pass
 
 
 class SEM(SEMGraph):
@@ -912,15 +624,7 @@ class SEM(SEMGraph):
         Examples
         --------
         """
-        if filename:
-            with open(filename) as f:
-                lavaan_str = f.readlines()
-        elif string:
-            lavaan_str = string.split("\n")
-        else:
-            raise ValueError("Either `filename` or `string` need to be specified")
-
-        return cls(syntax="lavaan", lavaan_str=lavaan_str)
+        pass
 
     @classmethod
     def from_graph(cls, ebunch, latents=[], err_corr=[], err_var={}):
@@ -994,13 +698,7 @@ class SEM(SEMGraph):
         [2] https://en.wikipedia.org/wiki/Structural_equation_modeling#/
             media/File:Example_Structural_equation_model.svg
         """
-        return cls(
-            syntax="graph",
-            ebunch=ebunch,
-            latents=latents,
-            err_corr=err_corr,
-            err_var=err_var,
-        )
+        pass
 
     @classmethod
     def from_lisrel(cls, var_names, params, fixed_masks=None):
@@ -1052,56 +750,7 @@ class SEM(SEMGraph):
         >>> from pgmpy.models import SEMAlg
         # TODO: Finish this example
         """
-        eta = var_names["y"] + var_names["x"] + var_names["eta"] + var_names["xi"]
-        m, n, p, q = (
-            len(var_names["y"]),
-            len(var_names["x"]),
-            len(var_names["eta"]),
-            len(var_names["xi"]),
-        )
-
-        B = np.block(
-            [
-                [np.zeros((m, m + n)), params["wedge_y"], np.zeros((m, q))],
-                [np.zeros((n, m + n + p)), params["wedge_x"]],
-                [np.zeros((p, m + n)), params["B"], params["gamma"]],
-                [np.zeros((q, m + n + p + q))],
-            ]
-        )
-        zeta = np.block(
-            [
-                [params["theta_e"], np.zeros((m, n + p + q))],
-                [np.zeros((n, m)), params["theta_del"], np.zeros((n, p + q))],
-                [np.zeros((p, m + n)), params["psi"], np.zeros((p, q))],
-                [np.zeros((q, m + n + p)), params["phi"]],
-            ]
-        )
-
-        B = np.block(
-            [
-                [np.zeros((m, m + n)), fixed_masks["wedge_y"], np.zeros((m, q))],
-                [np.zeros((n, m + n + p)), fixed_masks["wedge_x"]],
-                [np.zeros((p, m + n)), fixed_masks["B"], fixed_masks["gamma"]],
-                [np.zeros((q, m + n + p + q))],
-            ]
-        )
-        zeta = np.block(
-            [
-                [fixed_masks["theta_e"], np.zeros((m, n + p + q))],
-                [np.zeros((n, m)), fixed_masks["theta_del"], np.zeros((n, p + q))],
-                [np.zeros((p, m + n)), fixed_masks["psi"], np.zeros((p, q))],
-                [np.zeros((q, m + n + p)), fixed_masks["phi"]],
-            ]
-        )
-        observed = var_names["y"] + var_names["x"]
-
-        return cls.from_RAM(
-            variables=eta,
-            B=B,
-            zeta=zeta,
-            observed=observed,
-            fixed_values={"B": B, "zeta": zeta},
-        )
+        pass
 
     @classmethod
     def from_RAM(cls, variables, B, zeta, observed=None, wedge_y=None, fixed_values=None):
@@ -1151,21 +800,7 @@ class SEM(SEMGraph):
         >>> from pgmpy.models import SEM
         >>> SEM.from_RAM  # TODO: Finish this
         """
-        if observed:
-            wedge_y = np.zeros((len(variables), len(observed)))
-            obs_dict = {var: index for index, var in enumerate(observed)}
-            all_dict = {var: index for index, var in enumerate(variables)}
-            for var in observed:
-                wedge_y[obs_dict[var], all_dict[var]] = 1
-
-        return cls(
-            syntax="ram",
-            var_names=variables,
-            B=B,
-            zeta=zeta,
-            wedge_y=wedge_y,
-            fixed_values=fixed_values,
-        )
+        pass
 
     def fit(self):
         pass

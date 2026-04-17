@@ -136,20 +136,7 @@ class FunctionalBayesianNetwork(DiscreteBayesianNetwork):
         >>> model.add_cpds(cpd1, cpd2, cpd3)
 
         """
-        for cpd in cpds:
-            if not isinstance(cpd, FunctionalCPD):
-                raise ValueError("Only FunctionalCPD can be added to Functional Bayesian Network.")
-
-            if set(cpd.variables) - set(cpd.variables).intersection(set(self.nodes())):
-                raise ValueError(f"CPD defined on variable not in the model: {cpd}")
-
-            for prev_cpd_index in range(len(self.cpds)):
-                if self.cpds[prev_cpd_index].variable == cpd.variable:
-                    logger.warning(f"Replacing existing CPD for {cpd.variable}")
-                    self.cpds[prev_cpd_index] = cpd
-                    break
-            else:
-                self.cpds.append(cpd)
+        pass
 
     def get_cpds(self, node: Any | None = None) -> list[FunctionalCPD] | FunctionalCPD:
         """
@@ -184,7 +171,7 @@ class FunctionalBayesianNetwork(DiscreteBayesianNetwork):
         >>> model.add_cpds(cpd1, cpd2, cpd3)
         >>> model.get_cpds()
         """
-        return super().get_cpds(node)
+        pass
 
     def remove_cpds(self, *cpds: FunctionalCPD) -> None:
         """
@@ -213,14 +200,14 @@ class FunctionalBayesianNetwork(DiscreteBayesianNetwork):
         >>> model.add_cpds(cpd1, cpd2, cpd3)
         >>> for cpd in model.get_cpds():
         ...     print(cpd)
-        ...
+        pass
 
         >>> model.remove_cpds(cpd2, cpd3)
         >>> for cpd in model.get_cpds():
         ...     print(cpd)
-        ...
+        pass
         """
-        return super().remove_cpds(*cpds)
+        pass
 
     def check_model(self) -> bool:
         """
@@ -235,13 +222,7 @@ class FunctionalBayesianNetwork(DiscreteBayesianNetwork):
             True if all the checks pass.
 
         """
-        for node in self.nodes():
-            cpd = self.get_cpds(node=node)
-
-            if isinstance(cpd, FunctionalCPD):
-                if set(cpd.parents) != set(self.get_parents(node)):
-                    raise ValueError(f"CPD associated with {node} doesn't have proper parents associated with it.")
-        return True
+        pass
 
     def simulate(
         self,
@@ -295,59 +276,7 @@ class FunctionalBayesianNetwork(DiscreteBayesianNetwork):
         >>> model.add_cpds(cpd1, cpd2, cpd3)
         >>> model.simulate(n_samples=1000)
         """
-        # Step 0: Set the seed if specified, check arguments and initialize data structures.
-        if seed is not None:
-            pyro.set_rng_seed(seed)
-
-        if do is None:
-            do = {}
-
-        if virtual_intervention is None:
-            virtual_intervention = []
-
-        # Check if all variables in do and virtual_intervention are valid
-        extra_do = set(do.keys()) - set(self.nodes())
-        if extra_do:
-            raise ValueError(f"`do` contains nodes not in the model: {sorted(extra_do)}")
-
-        vi_map = {}
-        for cpd in virtual_intervention:
-            if not isinstance(cpd, FunctionalCPD):
-                raise ValueError("`virtual_intervention` must be a list of FunctionalCPD objects. Got {type(cpd)}")
-            if cpd.variable not in set(self.nodes()):
-                raise ValueError(f"Virtual intervention CPD variable not in the model: {cpd.variable}")
-            if cpd.parents:
-                raise ValueError(f"Virtual intervention CPD for {cpd.variable} must be unconditional (no parents).")
-            vi_map[cpd.variable] = cpd
-
-        overlap = set(do.keys()) & set(vi_map.keys())
-        if overlap:
-            raise ValueError(
-                f"Cannot specify both `do` and `virtual_intervention` for the same node(s): {sorted(overlap)}"
-            )
-
-        nodes = list(nx.topological_sort(self))
-        samples = pd.DataFrame(index=range(n_samples))
-
-        # Step 1: Simulate data
-        for node in nodes:
-            # Step 1.1: Handle hard interventions
-            if node in do:
-                samples[node] = np.full(n_samples, do[node])
-                continue
-
-            # Step 1.2: Handle virtual interventions
-            if node in vi_map:
-                samples[node] = vi_map[node].sample(n_samples=n_samples, parent_sample=None)
-                continue
-
-            # Step 1.3: Standard sampling from the node's CPD
-            cpd = self.get_cpds(node)
-            parent_samples = samples[cpd.parents] if cpd.parents else None
-            samples[node] = cpd.sample(n_samples=n_samples, parent_sample=parent_samples)
-
-        # Step 2: Return the simulated samples
-        return samples
+        pass
 
     def fit(
         self,
@@ -417,7 +346,7 @@ class FunctionalBayesianNetwork(DiscreteBayesianNetwork):
         ...         "x1_sigma", torch.tensor(1.0), constraint=constraints.positive
         ...     )
         ...     return dist.Normal(mu, sigma)
-        ...
+        pass
 
         >>> def x2_fn(parents):
         ...     intercept = pyro.param("x2_inter", torch.tensor(1.0))
@@ -425,7 +354,7 @@ class FunctionalBayesianNetwork(DiscreteBayesianNetwork):
         ...         "x2_sigma", torch.tensor(1.0), constraint=constraints.positive
         ...     )
         ...     return dist.Normal(intercept + parents["x1"], sigma)
-        ...
+        pass
 
         >>> cpd1 = FunctionalCPD("x1", fn=x1_prior)
         >>> cpd2 = FunctionalCPD("x2", fn=x2_prior, parents=["x1"])
@@ -440,17 +369,17 @@ class FunctionalBayesianNetwork(DiscreteBayesianNetwork):
         ...         "x2_inter": dist.Normal(1.0),
         ...         "x2_sigma": dist.HalfNormal(1),
         ...     }
-        ...
+        pass
 
         >>> def x1_fn(priors, parents):
         ...     return dist.Normal(priors["x1_mu"], priors["x1_sigma"])
-        ...
+        pass
 
         >>> def x2_fn(priors, parents):
         ...     return dist.Normal(
         ...         priors["x2_inter"] + parent["x1"], priors["x2_sigma"]
         ...     )
-        ...
+        pass
 
         >>> cpd1 = FunctionalCPD("x1", fn=x1_fn)
         >>> cpd2 = FunctionalCPD("x2", fn=x2_fn, parents=["x1"])
@@ -459,91 +388,4 @@ class FunctionalBayesianNetwork(DiscreteBayesianNetwork):
         >>> params = model.fit(data, estimator="MCMC", prior_fn=prior_fn, num_steps=100)
         >>> print(params["x1_mu"].mean(), params["x1_std"].mean())
         """
-        # Step 0: Checks for specified arguments.
-        if not isinstance(data, pd.DataFrame):
-            raise ValueError(f"data should be a pandas.DataFrame object. Got: {type(data)}.")
-
-        if not isinstance(num_steps, int):
-            raise ValueError(f"num_steps should be an integer. Got: {type(num_steps)}.")
-
-        if estimator.lower() not in ["svi", "mcmc"]:
-            raise ValueError(f"`estimator` argument needs to be either 'SVI' or 'MCMC'. Got: {estimator}.")
-
-        # Step 1: Preprocess the data and initialize data structures.
-        if seed is not None:
-            pyro.set_rng_seed(seed)
-
-        sort_nodes = list(nx.topological_sort(self))
-
-        tensor_data = {}
-        for node in sort_nodes:
-            if node not in data.columns:
-                raise ValueError(f"data doesn't contain column for the node: {node}.")
-            else:
-                import torch
-
-                tensor_data[node] = torch.tensor(
-                    data[node].values,
-                    dtype=config.get_dtype(),
-                    device=config.get_device(),
-                )
-
-        nuts_kwargs = nuts_kwargs or {}
-        mcmc_kwargs = mcmc_kwargs or {}
-
-        cpds_dict = {node: self.get_cpds(node) for node in sort_nodes}
-
-        # Step 2: Fit the model using the specified method.
-        if estimator.lower() == "svi":
-
-            def guide(tensor_data):
-                pass
-
-            # Step 2.1: Define the combined model for SVI.
-            def combined_model_svi(tensor_data):
-                with pyro.plate("data", data.shape[0]):
-                    for node in sort_nodes:
-                        pyro.sample(
-                            f"{node}",
-                            cpds_dict[node].fn({p: tensor_data[p] for p in cpds_dict[node].parents}),
-                            obs=tensor_data[node],
-                        )
-
-            # Step 2.2: Fit the model using SVI.
-            svi = pyro.infer.SVI(
-                model=combined_model_svi,
-                guide=guide,
-                optim=optimizer,
-                loss=pyro.infer.Trace_ELBO(),
-            )
-
-            for step in range(num_steps):
-                loss = svi.step(tensor_data)
-                if step % 50 == 0:
-                    logger.info(f"Step {step} | Loss: {loss:.4f}")
-
-        # Step 3: Fit the model using specified estimator
-        elif estimator.lower() == "mcmc":
-            # Step 3.1: Define the combined model for MCMC.
-            def combined_model_mcmc(tensor_data):
-                priors_dists = prior_fn()
-                priors_vals = {name: pyro.sample(name, d) for name, d in priors_dists.items()}
-
-                with pyro.plate("data", data.shape[0]):
-                    for node in sort_nodes:
-                        dist_node = cpds_dict[node].fn(
-                            priors_vals,
-                            {p: tensor_data[p] for p in cpds_dict[node].parents},
-                        )
-                        pyro.sample(f"{node}", dist_node, obs=tensor_data[node])
-
-            # Step 3.2: Fit the model using MCMC.
-            nuts_kernel = pyro.infer.NUTS(combined_model_mcmc, **nuts_kwargs)
-            mcmc = pyro.infer.MCMC(nuts_kernel, num_samples=num_steps, **mcmc_kwargs)
-            mcmc.run(tensor_data)
-
-        # Step 4: Return the fitted parameter values.
-        if estimator.lower() == "svi":
-            return dict(pyro.get_param_store().items())
-        else:
-            return mcmc.get_samples()
+        pass

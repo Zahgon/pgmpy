@@ -16,14 +16,4 @@ def read_hf_file(
     """
     Downloads a file from the Hugging Face Hub and returns its cached contents.
     """
-    cached_path = hf_hub_download(
-        repo_id=repo_id,
-        filename=filename.lstrip("/"),
-        repo_type=repo_type,
-        revision=revision,
-        etag_timeout=HF_ETAG_TIMEOUT,
-        # Avoid a Brotli decoding issue seen with some public Hub downloads in CI.
-        headers={"Accept-Encoding": "identity"},
-        library_name="pgmpy",
-    )
-    return Path(cached_path).read_bytes()
+    pass

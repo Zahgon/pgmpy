@@ -95,43 +95,7 @@ class FunctionalCPD(BaseFactor):
         >>> cpd.sample(2, parent_samples)
         array([2.63669038, 2.8288095 ])
         """
-        sampled_values = []
-
-        if parent_sample is not None:
-            if not isinstance(parent_sample, pd.DataFrame):
-                raise TypeError("`parent_sample` must be a pandas DataFrame.")
-
-            if not all(parent in parent_sample.columns for parent in self.parents):
-                missing_parents = [p for p in self.parents if p not in parent_sample.columns]
-                raise ValueError(f"Missing values for parent variables: {missing_parents}")
-            if len(parent_sample) != n_samples:
-                raise ValueError("Length of `parent_sample` must match `n_samples`.")
-
-            if self.vectorized:
-                dists = self.fn(parent_sample)
-                samples = pyro.sample(f"{self.variable}_vectorized", dists)
-                sampled_values = samples.detach().numpy()
-            else:
-                for i in range(n_samples):
-                    row = parent_sample.iloc[i]
-                    parents_t = {
-                        p: torch.as_tensor(row[p], dtype=config.get_dtype(), device=config.get_device())
-                        for p in self.parents
-                    }
-                    sampled_values.append(pyro.sample(f"{self.variable}", self.fn(parents_t)).item())
-
-        else:
-            if self.vectorized:
-                distribution = self.fn(None)
-                samples = pyro.sample(f"{self.variable}", distribution)
-                sampled_values = samples.detach().numpy()
-            else:
-                for i in range(n_samples):
-                    sampled_values.append(pyro.sample(f"{self.variable}", self.fn(parent_sample)).item())
-
-        sampled_values = np.array(sampled_values)
-
-        return sampled_values
+        pass
 
     def __str__(self):
         fn_name = "lambda fun." if self.fn.__name__ == "<lambda>" else self.fn.__name__

@@ -64,21 +64,4 @@ class ImpliedCIs(_BaseUnsupervisedMetric):
         self.show_progress = show_progress
 
     def _evaluate(self, X, causal_graph):
-        cis = []
-        ci_test = get_ci_test(test=self.ci_test, data=X)
-
-        if self.show_progress and config.SHOW_PROGRESS:
-            comb_iter = tqdm(
-                combinations(causal_graph.nodes(), 2),
-                total=math.comb(len(causal_graph.nodes()), 2),
-            )
-        else:
-            comb_iter = combinations(causal_graph.nodes(), 2)
-
-        for u, v in comb_iter:
-            if not ((u in causal_graph[v]) or (v in causal_graph[u])):
-                Z = list(causal_graph.minimal_dseparator(u, v))
-                ci_test(X=u, Y=v, Z=Z)
-                cis.append([u, v, Z, ci_test.p_value_])
-        cis = pd.DataFrame(cis, columns=["u", "v", "cond_vars", "p-value"])
-        return cis
+        pass

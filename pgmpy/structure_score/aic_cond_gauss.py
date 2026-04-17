@@ -60,7 +60,4 @@ class AICCondGauss(LogLikelihoodCondGauss):
         super().__init__(data, state_names=state_names)
 
     def _local_score(self, variable: str, parents: tuple[str, ...]) -> float:
-        ll = self._log_likelihood(variable=variable, parents=parents)
-        k = self._get_num_parameters(variable=variable, parents=parents)
-
-        return ll - k
+        pass

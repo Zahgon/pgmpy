@@ -139,21 +139,7 @@ class AncestralBase(nx.Graph, _GraphRolesMixin):
         >>> print(node_index)
         {'A': 0, 'B': 1, 'C': 2}
         """
-        nodes = list(self.nodes)
-        n = len(nodes)
-        node_index = {node: i for i, node in enumerate(nodes)}
-
-        M = np.full((n, n), 0, dtype=object)
-
-        for u, v, data in self.edges(data=True):
-            u_idx, v_idx = node_index[u], node_index[v]
-            u_mark = data["marks"][u]
-            v_mark = data["marks"][v]
-
-            M[u_idx, v_idx] = v_mark
-            M[v_idx, u_idx] = u_mark
-
-        return M, node_index
+        pass
 
     @adjacency_matrix.setter
     def adjacency_matrix(self, value):
@@ -182,19 +168,7 @@ class AncestralBase(nx.Graph, _GraphRolesMixin):
         >>> print(graph.edges(data=True))
         [('X_0', 'X_1', {'marks': {'X_1': '-', 'X_0': '>'}}), ('X_1', 'X_2', {'marks': {'X_2': '-', 'X_1': '>'}})]
         """
-        value = np.asarray(value)
-        if value.ndim != 2 or value.shape[0] != value.shape[1]:
-            raise ValueError("Adjacency matrix must be square (n x n).")
-        n = value.shape[0]
-        variables = [f"X_{i}" for i in range(n)]
-        self.clear()
-        for i in range(n):
-            for j in range(n):
-                if i != j:
-                    u_mark = value[i, j]
-                    v_mark = value[j, i]
-                    if u_mark != 0 and v_mark != 0:
-                        self.add_edge(variables[i], variables[j], u_mark, v_mark)
+        pass
 
     def add_edge(self, u, v, u_mark, v_mark):
         """
@@ -240,11 +214,7 @@ class AncestralBase(nx.Graph, _GraphRolesMixin):
         >>> g["C"]["E"]["marks"]
         {'C': '-', 'E': '-'}
         """
-        if u == v:
-            raise ValueError("Nodes cannot be the same for an edge.")
-        if u_mark not in self.valid_marks or v_mark not in self.valid_marks:
-            raise ValueError(f"Marks must be one of {self.valid_marks}.")
-        super().add_edge(u, v, marks={u: u_mark, v: v_mark})
+        pass
 
     def add_edges_from(self, ebunch):
         """
@@ -272,8 +242,7 @@ class AncestralBase(nx.Graph, _GraphRolesMixin):
          ('B', 'C', {'marks': {'B': '>', 'C': '-'}}),
          ('C', 'D', {'marks': {'C': 'o', 'D': 'o'}})]
         """
-        for u, v, u_mark, v_mark in ebunch:
-            self.add_edge(u, v, u_mark, v_mark)
+        pass
 
     def get_neighbors(self, node, u_type=None, v_type=None):
         """
@@ -309,19 +278,7 @@ class AncestralBase(nx.Graph, _GraphRolesMixin):
         >>> print(graph.get_neighbors("B", u_type=">", v_type="-"))
         {'C', 'A'}
         """
-        if node not in self:
-            return set()
-        neighbors = set()
-        for neighbor in nx.all_neighbors(self, node):
-            node_mark, neighbor_mark = (
-                self.edges[node, neighbor]["marks"][node],
-                self.edges[node, neighbor]["marks"][neighbor],
-            )
-
-            if (u_type is None or node_mark == u_type) and (v_type is None or neighbor_mark == v_type):
-                neighbors.add(neighbor)
-
-        return neighbors
+        pass
 
     def get_parents(self, node):
         """
@@ -349,7 +306,7 @@ class AncestralBase(nx.Graph, _GraphRolesMixin):
         >>> print(graph.get_parents("A"))
         set()
         """
-        return self.get_neighbors(node, u_type=">", v_type="-")
+        pass
 
     def get_children(self, node):
         """
@@ -377,7 +334,7 @@ class AncestralBase(nx.Graph, _GraphRolesMixin):
         >>> print(graph.get_children("D"))
         set()
         """
-        return self.get_neighbors(node, u_type="-", v_type=">")
+        pass
 
     def get_spouses(self, node):
         """
@@ -405,7 +362,7 @@ class AncestralBase(nx.Graph, _GraphRolesMixin):
         >>> print(graph.get_spouses("B"))
         {'A'}
         """
-        return self.get_neighbors(node, u_type=">", v_type=">")
+        pass
 
     def get_ancestors(self, node):
         """
@@ -438,17 +395,7 @@ class AncestralBase(nx.Graph, _GraphRolesMixin):
         >>> print(graph.get_ancestors("A"))
         {'A'}
         """
-        ancestors = set()
-        visited = set()
-        queue = deque(node)
-
-        while queue:
-            current = queue.popleft()
-            if current not in visited:
-                visited.add(current)
-                ancestors.add(current)
-                queue.extend(self.get_parents(current))
-        return ancestors
+        pass
 
     def get_descendants(self, node):
         """
@@ -481,17 +428,7 @@ class AncestralBase(nx.Graph, _GraphRolesMixin):
         >>> print(graph.get_descendants("D"))
         {'D'}
         """
-        descendants = set()
-        visited = set()
-        queue = deque(node)
-
-        while queue:
-            current = queue.popleft()
-            if current not in visited:
-                visited.add(current)
-                descendants.add(current)
-                queue.extend(self.get_children(current))
-        return descendants
+        pass
 
     def get_reachable_nodes(self, node, u_type=None, v_type=None):
         """
@@ -529,17 +466,7 @@ class AncestralBase(nx.Graph, _GraphRolesMixin):
         >>> print(graph.get_reachable_nodes("A", u_type="o", v_type="o"))
         {'A', 'D', 'E'}
         """
-        reachable = set()
-        visited = set()
-        queue = deque(node)
-
-        while queue:
-            current = queue.popleft()
-            if current not in visited:
-                visited.add(current)
-                reachable.add(current)
-                queue.extend(self.get_neighbors(current, u_type=u_type, v_type=v_type))
-        return reachable
+        pass
 
     def to_dagitty(self) -> str:
         """
@@ -591,37 +518,7 @@ class AncestralBase(nx.Graph, _GraphRolesMixin):
         ----------
         dagitty syntax: https://cran.r-project.org/web/packages/dagitty/dagitty.pdf
         """
-        target_type = self.__class__.__name__
-        lines = [f"{target_type.lower()} {{"]
-
-        edge_map = {
-            ("-", ">"): "->",
-            (">", "-"): "<-",
-            (">", ">"): "<->",
-            ("o", ">"): "@->",
-            (">", "o"): "<-@",
-            ("o", "o"): "@-@",
-            ("o", "-"): "@--",
-            ("-", "o"): "--@",
-            ("-", "-"): "--",
-        }
-        for u, v in self.edges:
-            marks = self.edges[u, v]["marks"]
-            u_mark, v_mark = marks[u], marks[v]
-            if (u_mark, v_mark) in edge_map:
-                symbol = edge_map[(u_mark, v_mark)]
-                if symbol in ["<-", "<-@", "--@"]:
-                    lines.append(f"{v} {symbol[::-1]} {u}")
-                else:
-                    lines.append(f"{u} {symbol} {v}")
-
-        dagitty_role_map = {"exposures": "exposure", "outcomes": "outcome"}
-        for role in self.get_roles():
-            for var in self.get_role(role):
-                lines.append(f"{var} [{dagitty_role_map.get(role, role)}]")
-
-        lines.append("}")
-        return "\n".join(lines)
+        pass
 
     @classmethod
     def from_dagitty(cls, string: str = None, filename: str = None):
@@ -652,16 +549,7 @@ class AncestralBase(nx.Graph, _GraphRolesMixin):
         ... }'''
         >>> mag = MAG.from_dagitty(dag_str)
         """
-        if filename:
-            with open(filename) as f:
-                dagitty_lines = [line.strip() for line in f.readlines()]
-        elif string:
-            dagitty_lines = [line.strip() for line in string.split("\n")]
-        else:
-            raise ValueError("Either `filename` or `string` need to be specified")
-
-        ebunch, roles, _, nodes = parse_dagitty(dagitty_lines)
-        return cls(ebunch=ebunch, roles=roles)
+        pass
 
     def __eq__(self, other):
         """
@@ -722,15 +610,4 @@ class AncestralBase(nx.Graph, _GraphRolesMixin):
         AncestralBase
             A new instance of the same class as self with all properties copied.
         """
-        ebunch = [(u, v, data["marks"][u], data["marks"][v]) for u, v, data in self.edges(data=True)]
-        ancestral_base = self.__class__(
-            ebunch=ebunch,
-            latents=self.latents.copy(),
-            exposures=self.exposures.copy(),
-            outcomes=self.outcomes.copy(),
-        )
-
-        for role, vars in self.get_role_dict().items():
-            ancestral_base.with_role(role=role, variables=vars, inplace=True)
-
-        return ancestral_base
+        pass

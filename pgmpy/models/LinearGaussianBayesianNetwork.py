@@ -72,7 +72,7 @@ class LinearGaussianBayesianNetwork(DAG):
     >>> model.add_cpds(cpd1, cpd2, cpd3)
     >>> for cpd in model.cpds:
     ...     print(cpd)
-    ...
+    pass
     P(x1) = N(1; 4)
     P(x2 | x1) = N(0.5*x1 + -5.0; 4)
     P(x3 | x2) = N(-1*x2 + 4; 3)
@@ -238,42 +238,7 @@ class LinearGaussianBayesianNetwork(DAG):
         >>> print(model)
         LinearGaussianBayesianNetwork with 46 nodes and 70 edges
         """
-
-        if isinstance(filename, (str, os.PathLike)):
-            with open(filename) as f:
-                data = json.load(f)
-        else:
-            content = filename.read()
-            if isinstance(content, bytes):
-                content = content.decode("utf-8")
-            data = json.loads(content)
-
-        nodes = data.get("nodes")
-        edges = data.get("arcs")
-        cpds_data = data.get("cpds")
-
-        model = cls(edges)
-        model.add_nodes_from(nodes)
-
-        cpds = []
-        for node, cpd_info in cpds_data.items():
-            coefficients = cpd_info["coefficients"]
-            var = cpd_info["variance"][0]
-            parents = cpd_info["parents"]
-
-            intercept = coefficients["(Intercept)"][0]
-            parent_coeffs = [coefficients[parent][0] for parent in parents]
-
-            cpd = LinearGaussianCPD(
-                variable=node,
-                beta=[intercept] + parent_coeffs,
-                std=math.sqrt(var),
-                evidence=parents,
-            )
-            cpds.append(cpd)
-
-        model.add_cpds(*cpds)
-        return model
+        pass
 
     def save(self, filename: str) -> None:
         """
@@ -290,27 +255,7 @@ class LinearGaussianBayesianNetwork(DAG):
         >>> model = load_model("bnlearn/ecoli70")
         >>> model.save("ecoli70.json")
         """
-
-        model_data = {
-            "nodes": list(self.nodes()),
-            "arcs": list(self.edges()),
-            "cpds": {},
-        }
-
-        for cpd in self.get_cpds():
-            coeffs_dict = {"(Intercept)": [float(cpd.beta[0])]}
-            for idx, parent in enumerate(cpd.evidence):
-                coeffs_dict[parent] = [float(cpd.beta[idx + 1])]
-
-            cpd_data = {
-                "coefficients": coeffs_dict,
-                "variance": [float(cpd.std**2)],
-                "parents": list(cpd.evidence),
-            }
-            model_data["cpds"][cpd.variable] = cpd_data
-
-        with open(filename, "w") as f:
-            json.dump(model_data, f, indent=4)
+        pass
 
     def add_cpds(self, *cpds: LinearGaussianCPD) -> None:
         """
@@ -333,25 +278,12 @@ class LinearGaussianBayesianNetwork(DAG):
         >>> model.add_cpds(cpd1, cpd2, cpd3)
         >>> for cpd in model.cpds:
         ...     print(cpd)
-        ...
+        pass
         P(x1) = N(1; 4)
         P(x2 | x1) = N(0.5*x1 + -5.0; 4)
         P(x3 | x2) = N(-1*x2 + 4; 3)
         """
-        for cpd in cpds:
-            if not isinstance(cpd, LinearGaussianCPD):
-                raise ValueError("Only LinearGaussianCPD can be added.")
-
-            if set(cpd.variables) - set(cpd.variables).intersection(set(self.nodes())):
-                raise ValueError("CPD defined on variable not in the model", cpd)
-
-            for prev_cpd_index in range(len(self.cpds)):
-                if self.cpds[prev_cpd_index].variable == cpd.variable:
-                    logger.warning(f"Replacing existing CPD for {cpd.variable}")
-                    self.cpds[prev_cpd_index] = cpd
-                    break
-            else:
-                self.cpds.append(cpd)
+        pass
 
     def get_cpds(self, node: Hashable | None = None) -> LinearGaussianCPD | list[LinearGaussianCPD]:
         """
@@ -383,15 +315,7 @@ class LinearGaussianBayesianNetwork(DAG):
         <LinearGaussianCPD: P(x2 | x1) = N(0.5*x1 + -5.0; 4) at 0x...,
         <LinearGaussianCPD: P(x3 | x2) = N(-1*x2 + 4; 3) at 0x...]
         """
-        if node is not None:
-            if node not in self.nodes():
-                raise ValueError("Node not present in the Directed Graph")
-            else:
-                for cpd in self.cpds:
-                    if cpd.variable == node:
-                        return cpd
-        else:
-            return self.cpds
+        pass
 
     def remove_cpds(self, *cpds: LinearGaussianCPD) -> None:
         """
@@ -413,7 +337,7 @@ class LinearGaussianBayesianNetwork(DAG):
         >>> model.add_cpds(cpd1, cpd2, cpd3)
         >>> for cpd in model.get_cpds():
         ...     print(cpd)
-        ...
+        pass
         P(x1) = N(1; 4)
         P(x2 | x1) = N(0.5*x1 + -5.0; 4)
         P(x3 | x2) = N(-1*x2 + 4; 3)
@@ -421,15 +345,12 @@ class LinearGaussianBayesianNetwork(DAG):
         >>> model.remove_cpds(cpd2, cpd3)
         >>> for cpd in model.get_cpds():
         ...     print(cpd)
-        ...
+        pass
         P(x1) = N(1; 4)
 
 
         """
-        for cpd in cpds:
-            if isinstance(cpd, (str, int)):
-                cpd = self.get_cpds(cpd)
-            self.cpds.remove(cpd)
+        pass
 
     def get_random_cpds(
         self,
@@ -464,24 +385,7 @@ class LinearGaussianBayesianNetwork(DAG):
         <LinearGaussianCPD: P(x2 | x1) = N(...; ...) at 0x...,
         <LinearGaussianCPD: P(x3 | x2) = N(...; ...) at 0x...]
         """
-        rng = np.random.default_rng(seed)
-
-        cpds = []
-        for i, var in enumerate(self.nodes()):
-            parents = self.get_parents(var)
-            cpds.append(
-                LinearGaussianCPD.get_random(
-                    variable=var,
-                    evidence=parents,
-                    loc=loc,
-                    scale=scale,
-                    seed=int(rng.integers(0, 2**31)),
-                )
-            )
-        if inplace:
-            self.add_cpds(*cpds)
-        else:
-            return cpds
+        pass
 
     def to_joint_gaussian(self) -> tuple[np.ndarray, np.ndarray]:
         """
@@ -511,33 +415,7 @@ class LinearGaussianBayesianNetwork(DAG):
                [  8.,  20., -20.],
                [ -8., -20.,  29.]])
         """
-        variables = list(nx.topological_sort(self))
-        var_to_index = {var: i for i, var in enumerate(variables)}
-        n_nodes = len(self.nodes())
-
-        # Step 1: Compute the mean for each variable.
-        mean = {}
-        for var in variables:
-            cpd = self.get_cpds(node=var)
-            mean[var] = (cpd.beta * (np.array([1] + [mean[u] for u in cpd.evidence]))).sum()
-        mean = np.array([mean[u] for u in variables])
-
-        # Step 2: Populate the adjacency matrix, and variance matrix
-        B = np.zeros((n_nodes, n_nodes))
-        omega = np.zeros((n_nodes, n_nodes))
-        for var in variables:
-            cpd = self.get_cpds(node=var)
-            for i, evidence_var in enumerate(cpd.evidence):
-                B[var_to_index[evidence_var], var_to_index[var]] = cpd.beta[i + 1]
-            omega[var_to_index[var], var_to_index[var]] = (cpd.std) ** 2
-
-        # Step 3: Compute the implied covariance matrix
-        identity_matrix = np.eye(n_nodes)
-        inv = np.linalg.inv(identity_matrix - B)
-        implied_cov = inv.T @ omega @ inv
-
-        # Round because numerical errors can lead to non-symmetric cov matrix.
-        return mean.round(decimals=8), implied_cov.round(decimals=8)
+        pass
 
     def log_likelihood(self, data: pd.DataFrame) -> float:
         """
@@ -572,13 +450,7 @@ class LinearGaussianBayesianNetwork(DAG):
         >>> float(round(model.log_likelihood(df), 3))
         -855.065
         """
-        ordering = list(nx.topological_sort(self))
-        missing = set(ordering) - set(data.columns)
-        if missing:
-            raise ValueError(f"Missing required columns in DataFrame: {missing}")
-        data = data[ordering].values
-        mean, cov = self.to_joint_gaussian()
-        return np.sum(multivariate_normal.logpdf(data, mean=mean, cov=cov))
+        pass
 
     def copy(self):
         """
@@ -608,12 +480,7 @@ class LinearGaussianBayesianNetwork(DAG):
         >>> len(copy_model.get_cpds())
         3
         """
-        model_copy = LinearGaussianBayesianNetwork()
-        model_copy.add_nodes_from(self.nodes())
-        model_copy.add_edges_from(self.edges())
-        if self.cpds:
-            model_copy.add_cpds(*[cpd.copy() for cpd in self.cpds])
-        return model_copy
+        pass
 
     def simulate(
         self,
@@ -703,154 +570,7 @@ class LinearGaussianBayesianNetwork(DAG):
         1  0.0 -0.119952  1.0
         2  0.0  5.251354  1.0
         """
-        # Step 1: Check if all arguments are specified and valid
-        evidence = {} if evidence is None else evidence
-
-        do = {} if do is None else do
-
-        virtual_intervention = [] if virtual_intervention is None else virtual_intervention
-
-        do_nodes = list(do.keys())
-        evidence_nodes = list(evidence.keys())
-        rng = np.random.default_rng(seed=seed)
-
-        invalid_nodes = set(do_nodes) - set(self.nodes())
-        if not set(do_nodes).issubset(set(self.nodes())):
-            raise ValueError(
-                f"The following do-nodes are not present in the model: {invalid_nodes}. "
-                f"do argument contains: {do_nodes}"
-            )
-
-        invalid_nodes = set(evidence_nodes) - set(self.nodes())
-        if not set(evidence_nodes).issubset(set(self.nodes())):
-            raise ValueError(
-                f"The following evidence-nodes are not present in the model: {invalid_nodes}. "
-                f"evidence argument contains: {evidence_nodes}"
-            )
-
-        self.check_model()
-        model = self.copy()
-
-        if common_vars := set(do.keys()) & set(evidence.keys()):
-            raise ValueError(f"Variable(s) can't be in both do and evidence: {', '.join(common_vars)}")
-
-        if virtual_intervention != []:
-            for cpd in virtual_intervention:
-                var = cpd.variable
-                if var not in self.nodes():
-                    raise ValueError(
-                        f"Virtual intervention provided for variable which is not in the model: {var}"
-                        f"The following nodes are present in the model: {self.nodes()}"
-                    )
-
-        # Step 2: If do is specified, modify the network structure.
-        if do != {}:
-            for var, val in do.items():
-                # Step 2.1: Remove incoming edges to the intervened
-                #  node as well as remove the CPD's of the intervened nodes.
-                for parent in list(model.get_parents(var)):
-                    model.remove_edge(parent, var)
-
-                model.remove_cpds(model.get_cpds(var))
-
-                # Step 2.2 : For each child of an intervened node, change its CPD to remove
-                #  the parent (intervened node) from the evidence and update its intercept accordingly
-                for child in model.get_children(var):
-                    child_cpd = model.get_cpds(child)
-
-                    new_evidence = list(child_cpd.evidence)
-                    new_beta = list(child_cpd.beta)
-
-                    parent_idx = child_cpd.evidence.index(var)
-                    new_beta[0] += new_beta[parent_idx + 1] * val
-
-                    del new_evidence[parent_idx]
-                    del new_beta[parent_idx + 1]
-
-                    new_cpd = LinearGaussianCPD(
-                        variable=child_cpd.variable,
-                        beta=new_beta,
-                        std=child_cpd.std,
-                        evidence=new_evidence,
-                    )
-
-                    model.remove_cpds(child_cpd)
-                    model.add_cpds(new_cpd)
-
-                model.remove_node(var)
-
-        # Step 3: If virtual_interventions are specified, change the CPD's of intervened variables
-        # to specified ones and remove the incoming nodes
-        for cpd in virtual_intervention:
-            var = cpd.variable
-            old_cpd = model.get_cpds(var)
-            model.remove_cpds(old_cpd)
-            model.add_cpds(cpd)
-
-            for parent in list(model.get_parents(var)):
-                model.remove_edge(parent, var)
-
-        mean, cov = model.to_joint_gaussian()
-        variables = list(nx.topological_sort(model))
-
-        # Step 4: Sample according to evidence
-        if len(evidence) == 0:
-            df = pd.DataFrame(
-                rng.multivariate_normal(mean=mean, cov=cov, size=n_samples),
-                columns=variables,
-            )
-
-        else:
-            df_evidence = pd.DataFrame([evidence])
-            missing_vars, mean_cond, cov_cond = model.predict_probability(data=df_evidence)
-
-            sorted_indices = np.argsort(missing_vars)
-            missing_vars = [missing_vars[i] for i in sorted_indices]
-            mean_cond = mean_cond[:, sorted_indices]
-            cov_cond = cov_cond[sorted_indices][:, sorted_indices]
-
-            samples_missing = rng.multivariate_normal(mean=mean_cond[0], cov=cov_cond, size=n_samples)
-            df_missing = pd.DataFrame(samples_missing, columns=missing_vars)
-
-            df = pd.DataFrame(index=range(n_samples), columns=variables)
-
-            for ev_var, ev_val in evidence.items():
-                df[ev_var] = ev_val
-
-            for mv in missing_vars:
-                df[mv] = df_missing[mv].values
-
-            df = df[variables]
-
-        # Step 5: Add do variables to the final dataFrame
-        for do_var, do_val in do.items():
-            df[do_var] = do_val
-
-        # Step 6: Remove latent variables if specified
-        if not include_latents:
-            df = df.drop(columns=self.latents)
-
-        # Step 7: Handle missing_prob argument
-        if missing_prob is not None:
-            if not isinstance(missing_prob, dict):
-                raise ValueError(f"missing_prob should be dict[str, float]. Got {type(missing_prob)}")
-
-            for node, prob in missing_prob.items():
-                if node not in df.columns:
-                    raise ValueError(f"{node} not present in sampled data")
-
-                if not isinstance(prob, (int, float)):
-                    raise ValueError(f"Missing probability for {node} must be numeric")
-
-                if not (0 <= prob <= 1):
-                    raise ValueError(f"Missing probability for {node} must be between 0 and 1")
-
-            # Apply masking (post-processing stage)
-            for node, prob in missing_prob.items():
-                mask = rng.random(len(df)) < prob
-                df.loc[mask, node] = np.nan
-
-        return df
+        pass
 
     def check_model(self) -> bool:
         """
@@ -864,19 +584,13 @@ class LinearGaussianBayesianNetwork(DAG):
         bool
             True if all checks pass; raises ValueError otherwise.
         """
-        for node in self.nodes():
-            cpd = self.get_cpds(node=node)
-
-            if isinstance(cpd, LinearGaussianCPD):
-                if set(cpd.evidence) != set(self.get_parents(node)):
-                    raise ValueError("CPD associated with %s doesn't have proper parents associated with it." % node)
-        return True
+        pass
 
     def get_cardinality(self, node: Any) -> None:
         """
         Cardinality is not defined for continuous variables.
         """
-        raise ValueError("Cardinality is not defined for continuous variables.")
+        pass
 
     def fit(
         self,
@@ -928,53 +642,7 @@ class LinearGaussianBayesianNetwork(DAG):
         <LinearGaussianCPD: P(x2 | x1) = N(0.046*x1 + -0.012; 0.981) at 0x...,
         <LinearGaussianCPD: P(x3 | x2) = N(0.172*x2 + -0.078; 0.908) at 0x...]
         """
-        # Step 1: Check the input
-        if len(missing_vars := (set(self.nodes()) - set(data.columns))) > 0:
-            raise ValueError(f"Following variables are missing in the data: {missing_vars}")
-
-        if estimator not in {
-            "mle",
-        }:
-            raise ValueError("estimator must be {'mle'}")
-        if std_estimator not in {"mle", "unbiased"}:
-            raise ValueError("std_estimator must be one of {'mle', 'unbiased'}")
-
-        # Step 2: Estimate the LinearGaussianCPDs
-        cpds = []
-        for node in self.nodes():
-            parents = self.get_parents(node)
-            # Step 2.1: If node doesn't have any parents (i.e. root node),
-            #  simply take the mean and variance.
-
-            if len(parents) == 0:
-                ddof = 0 if std_estimator == "mle" else 1
-                cpds.append(
-                    LinearGaussianCPD(
-                        variable=node,
-                        beta=[data.loc[:, node].mean()],
-                        std=data.loc[:, node].std(ddof=ddof),
-                    )
-                )
-            # Step 2.2: Else, fit a linear regression model and take the coefficients and intercept.
-            # Compute error variance using predicted values.
-
-            else:
-                lm = LinearRegression().fit(data.loc[:, parents], data.loc[:, node])
-                residuals = data.loc[:, node] - lm.predict(data.loc[:, parents])
-                p = 1 + len(parents)  # intercept + coefficients
-                ddof = 0 if std_estimator == "mle" else p
-                cpds.append(
-                    LinearGaussianCPD(
-                        variable=node,
-                        beta=np.append([lm.intercept_], lm.coef_),
-                        std=residuals.std(ddof=ddof),
-                        evidence=parents,
-                    )
-                )
-
-        # Step 3: Add the estimated CPDs to the model
-        self.add_cpds(*cpds)
-        return self
+        pass
 
     def predict_probability(self, data: pd.DataFrame) -> tuple[list[str], np.ndarray, np.ndarray]:
         """
@@ -1013,36 +681,7 @@ class LinearGaussianBayesianNetwork(DAG):
         3  0.027018
         4  1.731904
         """
-        # Step 0: Check the inputs
-        missing_vars = list(set(self.nodes()) - set(data.columns))
-
-        if len(missing_vars) == 0:
-            raise ValueError("No missing variables in the data")
-
-        # Step 1: Create separate mean and cov matrices for missing and known variables.
-        mu, cov = self.to_joint_gaussian()
-        variable_order = list(nx.topological_sort(self))
-
-        missing_vars = [var for var in variable_order if var in missing_vars]
-        observed_vars = [var for var in variable_order if var not in missing_vars]
-        missing_indexes = [variable_order.index(var) for var in missing_vars]
-        observed_indexes = [variable_order.index(var) for var in observed_vars]
-
-        mu_a = mu[missing_indexes]
-        mu_b = mu[observed_indexes]
-
-        cov_aa = cov[np.ix_(missing_indexes, missing_indexes)]  # Full |a|×|a| submatrix
-        cov_bb = cov[np.ix_(observed_indexes, observed_indexes)]  # Full |b|×|b| submatrix
-        cov_ab = cov[np.ix_(missing_indexes, observed_indexes)]  # Full |a|×|b| submatrix
-
-        # Step 2: Compute the conditional distributions
-        X_b = data.loc[:, observed_vars].values  # shape: (n_samples, |observed|)
-        centered_b = X_b - np.atleast_1d(mu_b)  # shape: (n_samples, |observed|).
-        mu_cond = np.atleast_2d(mu_a) + (cov_ab @ np.linalg.solve(cov_bb, centered_b.T)).T
-        cov_cond = cov_aa - cov_ab @ np.linalg.solve(cov_bb, cov_ab.T)
-
-        # Step 3: Return values
-        return (missing_vars, mu_cond, cov_cond)
+        pass
 
     def predict(self, data: pd.DataFrame) -> pd.DataFrame:
         """
@@ -1073,20 +712,19 @@ class LinearGaussianBayesianNetwork(DAG):
         3  0.027018
         4  1.731904
         """
-        missing_vars, mu_cond, _ = self.predict_probability(data)
-        return pd.DataFrame(mu_cond, columns=missing_vars, index=data.index)
+        pass
 
     def to_markov_model(self) -> None:
         """
         For now, to_markov_model method has not been implemented for LinearGaussianBayesianNetwork.
         """
-        raise NotImplementedError("to_markov_model method has not been implemented for LinearGaussianBayesianNetwork.")
+        pass
 
     def is_imap(self, JPD: Any) -> None:
         """
         For now, is_imap method has not been implemented for LinearGaussianBayesianNetwork.
         """
-        raise NotImplementedError("is_imap method has not been implemented for LinearGaussianBayesianNetwork.")
+        pass
 
     @staticmethod
     def get_random(
@@ -1149,15 +787,7 @@ class LinearGaussianBayesianNetwork(DAG):
         <LinearGaussianCPD: P(X_3 | X_0, X_2) = N(...) at 0x...,
         <LinearGaussianCPD: P(X_4 | X_3) = N(...) at 0x...]
         """
-        dag = DAG.get_random(n_nodes=n_nodes, edge_prob=edge_prob, node_names=node_names, latents=latents, seed=seed)
-        # Initialize with full DAG to preserve isolated nodes
-        lgbn_model = LinearGaussianBayesianNetwork(dag)
-        lgbn_model.latents = dag.latents
-
-        cpds = lgbn_model.get_random_cpds(loc=loc, scale=scale, seed=seed)
-
-        lgbn_model.add_cpds(*cpds)
-        return lgbn_model
+        pass
 
     def __eq__(self, other):
         """

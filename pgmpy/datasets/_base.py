@@ -67,106 +67,31 @@ class _BaseDataset(BaseObject):
         """
         Helper method to parse expert knowledge from raw bytes.
         """
-        text = raw_expert_knowledge.decode("utf-8-sig", errors="ignore")
-
-        temporal: list[list[str]] = []
-        forbids: list[tuple[str, str]] = []
-        requires: list[tuple[str, str]] = []
-
-        section = None
-
-        for raw_line in text.splitlines():
-            stripped = raw_line.strip()
-
-            if not stripped:
-                continue
-
-            lower = stripped.lower()
-
-            # Section headers
-            if lower == "/knowledge":
-                section = None
-                continue
-            if lower == "addtemporal":
-                section = "addtemporal"
-                continue
-            if lower == "forbiddirect":
-                section = "forbiddirect"
-                continue
-            if lower in ("requiredirect", "requireddirect"):
-                section = "requiredirect"
-                continue
-
-            # Content, depending on current section
-            if section == "addtemporal":
-                # Treat lines that are just an integer as placeholders for empty lines
-                if stripped.isdigit():
-                    temporal.append([])
-                else:
-                    tokens = stripped.split()
-                    # Skip the first token; its the line number
-                    temporal.append(tokens[1:])
-
-            elif section == "forbiddirect":
-                tokens = stripped.split()
-                forbids.append((tokens[0], tokens[1]))
-
-            elif section == "requiredirect":
-                tokens = stripped.split()
-                requires.append((tokens[0], tokens[1]))
-
-        return ExpertKnowledge(forbidden_edges=forbids, required_edges=requires, temporal_order=temporal)
+        pass
 
     @classmethod
     def _get_raw_data(cls, filename) -> bytes:
         """
         Fetches a dataset file from the Hugging Face Hub cache.
         """
-        return read_hf_file(
-            repo_id=cls.repo_id,
-            filename=f"{cls.base_url}/{filename}",
-            repo_type=cls.repo_type,
-            revision=cls.revision,
-        )
+        pass
 
     @classmethod
     def load_dataframe(cls) -> pd.DataFrame:
         """
         Fetches/reads from cache the data associated with the dataset.
         """
-        raw_data = cls._get_raw_data(cls.data_url)
-        df = pd.read_csv(io.BytesIO(raw_data), sep=getattr(cls, "sep", "\t"))
-        if cls.get_class_tag("has_missing_data"):
-            df.replace(cls.missing_values_marker, pd.NA, inplace=True)
-        if cls.get_class_tag("has_index_col"):
-            df.drop(df.columns[0], axis=1, inplace=True)
-        if len(cls.categorical_variables) > 0:
-            for col in cls.categorical_variables:
-                df[col] = df[col].astype("category")
-        if len(cls.ordinal_variables) > 0:
-            for col, order in cls.ordinal_variables.items():
-                cat_type = pd.CategoricalDtype(categories=order, ordered=True)
-                df[col] = df[col].astype(cat_type)
-        return df
+        pass
 
     @classmethod
     def load_expert_knowledge(cls) -> ExpertKnowledge:
         """Fetches/reads from cache the expert knowledge associated with the dataset."""
-        if not cls.get_class_tag("has_expert_knowledge"):
-            return None
-
-        raw_data = cls._get_raw_data(cls.expert_knowledge_url)
-        expert_knowledge = cls._parse_expert_knowledge(raw_data)
-        return expert_knowledge
+        pass
 
     @classmethod
     def load_ground_truth(cls) -> DAG:
         """Fetches/reads from cache the ground truth DAG associated with the dataset."""
-        if not cls.get_class_tag("has_ground_truth"):
-            return None
-
-        raw_data = cls._get_raw_data(cls.ground_truth_url).decode("utf-8-sig", errors="ignore")
-        return DAG.from_dagitty(raw_data)
+        pass
 
 
 class _CovarianceMixin:
@@ -181,21 +106,7 @@ class _CovarianceMixin:
         """
         Fetches the data and creates a covariance matrix DataFrame.
         """
-        raw_data = cls._get_raw_data(cls.data_url).decode("utf-8-sig", errors="ignore")
-
-        lines = raw_data.strip().splitlines()
-        # First replace multiple spaces with a single space and then split the line on either \t or space. Datasets are
-        # not uniform.
-        names = re.split(r"\t|\ ", re.sub(r"\s+", " ", lines[1].strip()))
-
-        mat = np.zeros((len(names), len(names)), dtype=float)
-
-        for i, line in enumerate(lines[2 : 2 + len(names)]):
-            vals = np.fromstring(line, sep="\t", dtype=float)
-            mat[i, : i + 1] = vals
-            mat[: i + 1, i] = vals
-
-        return pd.DataFrame(mat, columns=names, index=names)
+        pass
 
     @classmethod
     def load_dataframe(cls) -> pd.DataFrame:
@@ -204,13 +115,7 @@ class _CovarianceMixin:
 
         ** Hence, when using this mixin, _CovarDatasetMixin should be the first parent class. **
         """
-        cov_matrix = cls._load_covariance_matrix()
-        mean = [0] * cls.get_class_tag("n_variables")
-        data = pd.DataFrame(
-            np.random.multivariate_normal(mean, cov_matrix.values, size=cls.get_class_tag("n_samples")),
-            columns=cov_matrix.columns,
-        )
-        return data
+        pass
 
 
 class _TubingenBenchmarkMixin:
@@ -221,14 +126,11 @@ class _TubingenBenchmarkMixin:
 
     @classmethod
     def load_dataframe(cls, pair_id: int) -> pd.DataFrame:
-        raw_data = cls._get_raw_data(f"pair{pair_id:04}.txt")
-        return pd.read_csv(io.BytesIO(raw_data), sep=r"\s+", header=None, names=["x", "y"])
+        pass
 
     @classmethod
     def load_ground_truth(cls, pair_id: int) -> DAG:
-        raw_data = cls._get_raw_data(f"pair{pair_id:04}_graph.txt")
-        content = raw_data.decode("utf-8-sig", errors="ignore")
-        return DAG.from_dagitty(content)
+        pass
 
 
 def load_dataset(name: str) -> Dataset:
@@ -247,50 +149,7 @@ def load_dataset(name: str) -> Dataset:
     >>> df = dataset.data
     >>> ground_truth = dataset.ground_truth
     """
-    all_datasets = all_objects(object_types=_BaseDataset, package_name="pgmpy.datasets", return_names=False)
-    if name.startswith("tubingen"):
-        name_parts = name.split("/")
-        if len(name_parts) == 2 and name_parts[1].isdigit():
-            pair_id = int(name_parts[1])
-
-            if not (1 <= pair_id <= 108):
-                raise ValueError(f"Tubingen pair ID must be between 1 and 108. Got {pair_id}.")
-            target_cls = next(
-                (cls for cls in all_datasets if cls.get_class_tag("name") == "tubingen"),
-                None,
-            )
-            df = target_cls.load_dataframe(pair_id)
-            gt = target_cls.load_ground_truth(pair_id)
-
-            tags = target_cls.get_class_tags()
-            tags["n_samples"] = df.shape[0]
-            tags["has_missing_data"] = bool(df.isnull().any().any())
-
-            return Dataset(
-                name=name,
-                data=df,
-                expert_knowledge=None,
-                ground_truth=gt,
-                tags=tags,
-            )
-        else:
-            raise ValueError(f"Invalid dataset name format: '{name}'. For Tubingen datasets, use 'tubingen/<pair_id>'.")
-
-    target_cls = None
-    for cls in all_datasets:
-        if cls.get_class_tag("name") == name:
-            target_cls = cls
-            break
-    if target_cls is None:
-        raise ValueError(f"Dataset with name '{name}' not found. Please use list_datasets() to see available datasets.")
-
-    return Dataset(
-        name=name,
-        data=target_cls.load_dataframe(),
-        expert_knowledge=target_cls.load_expert_knowledge(),
-        ground_truth=target_cls.load_ground_truth(),
-        tags=target_cls.get_class_tags(),
-    )
+    pass
 
 
 def list_datasets(**filter_tags) -> list[str]:
@@ -328,20 +187,4 @@ def list_datasets(**filter_tags) -> list[str]:
     >>> list_datasets(is_discrete=True, has_ground_truth=True)
     ['sachs_discrete']
     """
-    valid_tags = set(_BaseDataset._tags.keys())
-
-    if invalid_tags := set(filter_tags.keys()) - valid_tags:
-        raise ValueError(
-            f"Unrecognized filter argument(s): {sorted(invalid_tags)}. Valid filter tags are: {sorted(valid_tags)}."
-        )
-
-    all_datasets = all_objects(
-        object_types=_BaseDataset,
-        package_name="pgmpy.datasets",
-        return_names=False,
-        filter_tags=filter_tags,
-    )
-
-    dataset_names = [cls.get_class_tag("name") for cls in all_datasets if cls.get_class_tag("name") is not None]
-
-    return sorted(dataset_names)
+    pass

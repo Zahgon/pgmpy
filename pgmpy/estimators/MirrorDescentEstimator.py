@@ -67,25 +67,7 @@ class MirrorDescentEstimator(MarginalEstimator):
         mu: FactorDict
             Mapping of clique to factors representing marginal beliefs.
         """
-        # Assign a new value for theta.
-        self.belief_propagation.junction_tree.clique_beliefs = theta
-
-        # TODO: Currently, belief propagation operates in the original space.
-        # To be compatible with this function and for better numerical conditioning,
-        # allow calibration to happen in log-space.
-        self.belief_propagation.calibrate()
-        mu = self.belief_propagation.junction_tree.clique_beliefs
-        cliques = list(mu.keys())
-        clique = cliques[0]
-
-        # Normalize each clique (in log-space) for numerical stability
-        # and then convert the marginals back to probability space so
-        # they are comparable with the observed marginals.
-        log_z = logsumexp(mu[clique].values)
-        for clique in cliques:
-            mu[clique] += np.log(n) - log_z
-            mu[clique].values = compat_fns.exp(mu[clique].values)
-        return mu
+        pass
 
     def estimate(
         self,
@@ -173,60 +155,4 @@ class MirrorDescentEstimator(MarginalEstimator):
         | a(1) | b(1) |     1.5000 |
         +------+------+------------+
         """
-        # Step 1: Setup variables such as data, step size, and clique to marginal mapping.
-        if self.data is None:
-            raise ValueError(f"No data was found to fit to the marginals {marginals}")
-
-        n = len(self.data)
-
-        _no_line_search = stepsize is not None
-        alpha = stepsize if isinstance(stepsize, float) else 1.0 / n**2
-
-        clique_to_marginal = self._clique_to_marginal(
-            marginals=FactorDict.from_dataframe(df=self.data, marginals=marginals),
-            clique_nodes=self.belief_propagation.junction_tree.nodes(),
-        )
-
-        # Step 2: Perform calibration to initialize variables.
-        theta = self.theta if self.theta else self.belief_propagation.junction_tree.clique_beliefs
-        mu = self._calibrate(theta=theta, n=n)
-        answer = self._marginal_loss(marginals=mu, clique_to_marginal=clique_to_marginal, metric=metric)
-
-        # Step 3: Optimize the potentials based off the observed marginals.
-        pbar = tqdm(range(iterations)) if show_progress else range(iterations)
-        for _ in pbar:
-            omega, nu = theta, mu
-            curr_loss, dL = answer
-            if not _no_line_search:
-                alpha *= 2
-
-            if isinstance(pbar, tqdm):
-                pbar.set_description_str(
-                    ",\t".join(
-                        [
-                            f"Loss: {curr_loss:e}",
-                            f"Grad Norm: {np.sqrt(dL.dot(dL)):e}",
-                            f"alpha: {alpha:e}",
-                        ]
-                    )
-                )
-
-            for __ in range(25):
-                # Take gradient step.
-                theta = omega - alpha * dL
-
-                # Calibrate to propogate gradients through the graph.
-                mu = self._calibrate(theta=theta, n=n)
-
-                # Compute the new loss with respect to the updated beliefs.
-                answer = self._marginal_loss(marginals=mu, clique_to_marginal=clique_to_marginal, metric=metric)
-                # If we haven't appreciably improved, try reducing the step size.
-                # Otherwise, we break to the next iteration.
-                _step = 0.5 * alpha * dL.dot(nu - mu)
-                if _no_line_search or curr_loss - answer[0] >= _step:
-                    break
-                alpha *= 0.5
-
-        self.theta = theta
-        self.belief_propagation.junction_tree.clique_beliefs = mu
-        return self.belief_propagation.junction_tree
+        pass

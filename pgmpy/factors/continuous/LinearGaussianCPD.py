@@ -97,14 +97,7 @@ class LinearGaussianCPD(BaseFactor):
         >>> copy_cpd.evidence
         ['X1', 'X2', 'X3']
         """
-        copy_cpd = LinearGaussianCPD(
-            variable=self.variable,
-            beta=self.beta,
-            std=self.std,
-            evidence=list(self.evidence),
-        )
-
-        return copy_cpd
+        pass
 
     def __str__(self):
         mean = self.beta.round(3)
@@ -169,19 +162,7 @@ class LinearGaussianCPD(BaseFactor):
         ... ) # doctest: +ELLIPSIS
         <LinearGaussianCPD: P(Income | Age, Experience) = N(1.338*Age + 1.876*Experience + 1.599; 2.21) at 0x...
         """
-        rng = np.random.default_rng(seed=seed)
-
-        beta = rng.normal(loc=loc, scale=scale, size=(len(evidence) + 1))
-        std = abs(rng.normal(loc=loc, scale=scale))
-
-        node_cpd = LinearGaussianCPD(
-            variable=variable,
-            beta=beta,
-            std=std,
-            evidence=evidence,
-        )
-
-        return node_cpd
+        pass
 
     def __eq__(self, other):
         """

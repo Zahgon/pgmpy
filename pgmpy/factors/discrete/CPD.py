@@ -201,88 +201,19 @@ class TabularCPD(DiscreteFactor):
                [0.1, 0.1],
                [0.8, 0.8]])
         """
-        if self.variable in self.variables:
-            return self.values.reshape(tuple([self.cardinality[0], np.prod(self.cardinality[1:])]))
-        else:
-            return self.values.reshape(tuple([np.prod(self.cardinality), 1]))
+        pass
 
     def __str__(self):
         return self._make_table_str(tablefmt="grid")
 
     def _str(self, phi_or_p="p", tablefmt="fancy_grid"):
-        return super(self, TabularCPD)._str(phi_or_p, tablefmt)
+        pass
 
     def _make_table_str(self, tablefmt="fancy_grid", print_state_names=True, return_list=False) -> str | list[str]:
-        headers_list = []
-
-        # Build column headers
-        evidence = self.variables[1:]
-        evidence_card = self.cardinality[1:]
-        if evidence:
-            col_indexes = np.array(list(product(*[range(i) for i in evidence_card])))
-            if self.state_names and print_state_names:
-                for i in range(len(evidence_card)):
-                    column_header = [str(evidence[i])] + [
-                        f"{evidence[i]}({self.state_names[evidence[i]][d]})" for d in col_indexes.T[i]
-                    ]
-                    headers_list.append(column_header)
-            else:
-                for i in range(len(evidence_card)):
-                    column_header = [str(evidence[i])] + [f"{evidence[i]}_{d}" for d in col_indexes.T[i]]
-                    headers_list.append(column_header)
-
-        # Build row headers
-        if self.state_names and print_state_names:
-            variable_array = [
-                [f"{self.variable}({self.state_names[self.variable][i]})" for i in range(self.variable_card)]
-            ]
-        else:
-            variable_array = [[f"{self.variable}_{i}" for i in range(self.variable_card)]]
-        # Stack with data
-        labeled_rows = np.hstack((np.array(variable_array).T, compat_fns.to_numpy(self.get_values()))).tolist()
-
-        if return_list:
-            return headers_list + labeled_rows
-
-        # No support for multi-headers in tabulate
-        cdf_str = tabulate(headers_list + labeled_rows, tablefmt=tablefmt)
-
-        cdf_str = self._truncate_strtable(cdf_str)
-
-        return cdf_str
+        pass
 
     def _truncate_strtable(self, cdf_str: str):
-        terminal_width, terminal_height = get_terminal_size()
-
-        list_rows_str = cdf_str.split("\n")
-
-        table_width = len(list_rows_str[0])
-
-        colstr_i = np.array([pos for pos, char in enumerate(list_rows_str[0]) if char == "+"])
-
-        if table_width > terminal_width:
-            half_width = terminal_width // 2 - 3
-
-            left_i = colstr_i[colstr_i < half_width][-1]
-            right_i = colstr_i[(table_width - colstr_i) < half_width][0]
-
-            new_cdf_str = []
-            for temp_row_str in list_rows_str:
-                left = temp_row_str[: left_i + 1]
-                right = temp_row_str[right_i:]
-                if temp_row_str[left_i] == "+":
-                    joiner = "-----"
-                else:
-                    joiner = " ... "
-                new_cdf_str.append(left + joiner + right)
-
-            cdf_str = "\n".join(new_cdf_str)
-
-        # TODO: vertical limiter
-        # if table_height > terminal_height:
-        #     half_height = terminal_height // 2
-
-        return cdf_str
+        pass
 
     def to_csv(self, filename: str | os.PathLike):
         """
@@ -295,9 +226,7 @@ class TabularCPD(DiscreteFactor):
         >>> cpd = model.get_cpds(node="SAO2")
         >>> cpd.to_csv(filename="sao2.csv")
         """
-        with open(filename, "w") as f:
-            writer = csv.writer(f)
-            writer.writerows(self._make_table_str(tablefmt="grid", return_list=True))
+        pass
 
     def to_dataframe(self):
         """
@@ -363,15 +292,7 @@ class TabularCPD(DiscreteFactor):
                                 True     1.0
         dtype: float64
         """
-        state_combinations_with_all_variables = pd.MultiIndex.from_product(
-            [self.state_names[var] for var in self.variables], names=self.variables
-        )
-        df_with_1_column = pd.DataFrame(
-            {"probability": self.values.flatten()},
-            index=state_combinations_with_all_variables,
-        )
-        df_with_prob_rowsum_to_1 = df_with_1_column["probability"].unstack(self.variable)
-        return df_with_prob_rowsum_to_1
+        pass
 
     def copy(self):
         """
@@ -399,16 +320,7 @@ class TabularCPD(DiscreteFactor):
                [[0.3, 0.4],
                 [0.4, 0.8]]])
         """
-        evidence = self.variables[1:] if len(self.variables) > 1 else None
-        evidence_card = self.cardinality[1:] if len(self.variables) > 1 else None
-        return TabularCPD(
-            self.variable,
-            self.variable_card,
-            compat_fns.copy(self.get_values()),
-            evidence,
-            evidence_card,
-            state_names=self.state_names.copy(),
-        )
+        pass
 
     def normalize(self, inplace=True):
         """
@@ -436,11 +348,7 @@ class TabularCPD(DiscreteFactor):
         array([[0.63636364, 0.33333333, 0.6       , 0.2       ],
                [0.36363636, 0.66666667, 0.4       , 0.8       ]])
         """
-        tabular_cpd = self if inplace else self.copy()
-        cpd = tabular_cpd.get_values()
-        tabular_cpd.values = (cpd / cpd.sum(axis=0)).reshape(tuple(tabular_cpd.cardinality))
-        if not inplace:
-            return tabular_cpd
+        pass
 
     def marginalize(self, variables, inplace=True):
         """
@@ -472,16 +380,7 @@ class TabularCPD(DiscreteFactor):
         array([[0.65, 0.4 ],
                [0.35, 0.6 ]])
         """
-        if self.variable in variables:
-            raise ValueError("Marginalization not allowed on the variable on which CPD is defined")
-
-        tabular_cpd = self if inplace else self.copy()
-
-        super(TabularCPD, tabular_cpd).marginalize(variables)
-        tabular_cpd.normalize()
-
-        if not inplace:
-            return tabular_cpd
+        pass
 
     def reduce(self, values, inplace=True, show_warnings=True):
         """
@@ -513,16 +412,7 @@ class TabularCPD(DiscreteFactor):
         array([[0.7, 0.6],
                [0.3, 0.4]])
         """
-        if self.variable in (value[0] for value in values):
-            raise ValueError("Reduce not allowed on the variable on which CPD is defined")
-
-        tabular_cpd = self if inplace else self.copy()
-
-        super(TabularCPD, tabular_cpd).reduce(values, show_warnings=show_warnings)
-        tabular_cpd.normalize()
-
-        if not inplace:
-            return tabular_cpd
+        pass
 
     def to_factor(self):
         """
@@ -544,14 +434,7 @@ class TabularCPD(DiscreteFactor):
         >>> factor # doctest: +ELLIPSIS
         <DiscreteFactor representing phi(grade:3, evi1:2) at 0x...>
         """
-        factor = DiscreteFactor.__new__(DiscreteFactor)
-        factor.variables = self.variables.copy()
-        factor.cardinality = self.cardinality.copy()
-        factor.values = compat_fns.copy(self.values)
-        factor.state_names = self.state_names.copy()
-        factor.name_to_no = self.name_to_no.copy()
-        factor.no_to_name = self.no_to_name.copy()
-        return factor
+        pass
 
     def reorder_parents(self, new_order: list, inplace: bool = True):
         """
@@ -648,44 +531,13 @@ class TabularCPD(DiscreteFactor):
         >>> cpd.variable_card
         3
         """
-        if (
-            len(self.variables) <= 1
-            or (set(new_order) - set(self.variables))
-            or (set(self.variables[1:]) - set(new_order))
-        ):
-            raise ValueError("New order either has missing or extra arguments")
-        else:
-            if new_order != self.variables[1:]:
-                evidence = self.variables[1:]
-                evidence_card = self.cardinality[1:]
-                card_map = dict(zip(evidence, evidence_card))
-                old_pos_map = dict(zip(evidence, range(len(evidence))))
-                trans_ord = [0] + [(old_pos_map[letter] + 1) for letter in new_order]
-                new_values = compat_fns.transpose(self.values, tuple(trans_ord))
-
-                if inplace:
-                    variables = [self.variables[0]] + new_order
-                    cardinality = [self.variable_card] + [card_map[var] for var in new_order]
-                    super().__init__(variables, cardinality, new_values.flatten())
-                    return self.get_values()
-                else:
-                    return new_values.reshape(
-                        tuple(
-                            [
-                                self.cardinality[0],
-                                np.prod([card_map[var] for var in new_order]),
-                            ]
-                        )
-                    )
-            else:
-                logger.warning("Same ordering provided as current")
-                return self.get_values()
+        pass
 
     def get_evidence(self):
         """
         Returns the evidence variables of the CPD.
         """
-        return self.variables[:0:-1]
+        pass
 
     @staticmethod
     def get_random(variable, evidence=None, cardinality=None, state_names={}, seed=None):
@@ -732,41 +584,7 @@ class TabularCPD(DiscreteFactor):
         ... ) # doctest: +ELLIPSIS
         <TabularCPD representing P(A:2 | B:2, C:2) at 0x...>
         """
-        generator = np.random.default_rng(seed=seed)
-
-        if evidence is None:
-            evidence = []
-
-        if cardinality is None:
-            cardinality = dict.fromkeys(chain([variable], evidence), 2)
-        else:
-            for var in chain([variable], evidence):
-                if var not in cardinality.keys():
-                    raise ValueError(f"Cardinality for variable: {var} not specified.")
-
-        if len(evidence) == 0:
-            values = generator.random((cardinality[variable], 1))
-            values = values / np.sum(values, axis=0)
-            node_cpd = TabularCPD(
-                variable=variable,
-                variable_card=cardinality[variable],
-                values=values,
-                state_names=state_names,
-            )
-        else:
-            parent_card = [cardinality[var] for var in evidence]
-            values = generator.random((cardinality[variable], np.prod(parent_card)))
-            values = values / np.sum(values, axis=0)
-            node_cpd = TabularCPD(
-                variable=variable,
-                variable_card=cardinality[variable],
-                values=values,
-                evidence=evidence,
-                evidence_card=parent_card,
-                state_names=state_names,
-            )
-
-        return node_cpd
+        pass
 
     @staticmethod
     def get_uniform(variable, evidence=None, cardinality=None, state_names={}, seed=None):
@@ -814,36 +632,4 @@ class TabularCPD(DiscreteFactor):
         ... ) # doctest: +ELLIPSIS
         <TabularCPD representing P(A:2 | B:2, C:2) at 0x...>
         """
-        if evidence is None:
-            evidence = []
-
-        if cardinality is None:
-            cardinality = dict.fromkeys(chain([variable], evidence), 2)
-        else:
-            for var in chain([variable], evidence):
-                if var not in cardinality.keys():
-                    raise ValueError(f"Cardinality for variable: {var} not specified.")
-
-        if len(evidence) == 0:
-            values = np.ones((cardinality[variable], 1))
-            values = values / np.sum(values, axis=0)
-            node_cpd = TabularCPD(
-                variable=variable,
-                variable_card=cardinality[variable],
-                values=values,
-                state_names=state_names,
-            )
-        else:
-            parent_card = [cardinality[var] for var in evidence]
-            values = np.ones((cardinality[variable], np.prod(parent_card)))
-            values = values / np.sum(values, axis=0)
-            node_cpd = TabularCPD(
-                variable=variable,
-                variable_card=cardinality[variable],
-                values=values,
-                evidence=evidence,
-                evidence_card=parent_card,
-                state_names=state_names,
-            )
-
-        return node_cpd
+        pass

@@ -57,7 +57,7 @@ class XBNReader:
         {'NAME': "Notebook.Cancer Example From Neapolitan",
          'ROOT': "Cancer"}
         """
-        return {key: value for key, value in self.network.items()}
+        pass
 
     def get_bnmodel_name(self):
         """
@@ -69,7 +69,7 @@ class XBNReader:
         >>> reader.get_bnmodel_name()
         'Cancer'
         """
-        return self.network.find("BNMODEL").get("NAME")
+        pass
 
     def get_static_properties(self):
         """
@@ -81,10 +81,7 @@ class XBNReader:
         >>> reader.get_static_properties()
         {'FORMAT': 'MSR DTAS XML', 'VERSION': '0.2', 'CREATOR': 'Microsoft Research DTAS'}
         """
-        if self.bnmodel.find("STATICPROPERTIES") is not None:
-            return {tags.tag: tags.get("VALUE") for tags in self.bnmodel.find("STATICPROPERTIES")}
-        else:
-            return {}
+        pass
 
     def get_variables(self):
         """
@@ -105,16 +102,7 @@ class XBNReader:
         'e': {....}
         }
         """
-        variables = {}
-        for variable in self.bnmodel.find("VARIABLES"):
-            variables[variable.get("NAME")] = {
-                "TYPE": variable.get("TYPE"),
-                "XPOS": variable.get("XPOS"),
-                "YPOS": variable.get("YPOS"),
-                "DESCRIPTION": variable.find("DESCRIPTION").text,
-                "STATES": [state.text for state in variable.findall("STATENAME")],
-            }
-        return variables
+        pass
 
     def get_edges(self):
         """
@@ -126,7 +114,7 @@ class XBNReader:
         >>> reader.get_edges()
         [('a', 'b'), ('a', 'c'), ('b', 'd'), ('c', 'd'), ('c', 'e')]
         """
-        return [(arc.get("PARENT"), arc.get("CHILD")) for arc in self.bnmodel.find("STRUCTURE")]
+        pass
 
     def get_distributions(self):
         """
@@ -162,55 +150,13 @@ class XBNReader:
                  [ 0.7 ,  0.3 ],
                  [ 0.05,  0.95]]), 'CONDSET': ['b', 'c']}, 'CARDINALITY': [2, 2]}
         """
-        distribution = {}
-        for dist in self.bnmodel.find("DISTRIBUTIONS"):
-            variable_name = dist.find("PRIVATE").get("NAME")
-            distribution[variable_name] = {"TYPE": dist.get("TYPE")}
-            if dist.find("CONDSET") is not None:
-                distribution[variable_name]["CONDSET"] = [
-                    var.get("NAME") for var in dist.find("CONDSET").findall("CONDELEM")
-                ]
-                distribution[variable_name]["CARDINALITY"] = np.array(
-                    [
-                        len(
-                            set(
-                                np.array([list(map(int, dpi.get("INDEXES").split())) for dpi in dist.find("DPIS")])[
-                                    :, i
-                                ]
-                            )
-                        )
-                        for i in range(len(distribution[variable_name]["CONDSET"]))
-                    ]
-                )
-            distribution[variable_name]["DPIS"] = np.array(
-                [list(map(float, dpi.text.split())) for dpi in dist.find("DPIS")]
-            ).transpose()
-
-        return distribution
+        pass
 
     def get_model(self):
         """
         Returns an instance of Bayesian Model.
         """
-        model = DiscreteBayesianNetwork()
-        model.add_nodes_from(self.variables)
-        model.add_edges_from(self.edges)
-        model.name = self.model_name
-
-        tabular_cpds = []
-        for var, values in self.variable_CPD.items():
-            evidence = values["CONDSET"] if "CONDSET" in values else []
-            cpd = values["DPIS"]
-            evidence_card = values["CARDINALITY"] if "CARDINALITY" in values else []
-            states = self.variables[var]["STATES"]
-            cpd = TabularCPD(var, len(states), cpd, evidence=evidence, evidence_card=evidence_card)
-            tabular_cpds.append(cpd)
-
-        model.add_cpds(*tabular_cpds)
-        for var, properties in self.variables.items():
-            model._node[var] = properties
-
-        return model
+        pass
 
 
 class XBNWriter:
@@ -264,19 +210,7 @@ class XBNWriter:
         """
         Inplace prettyprint formatter.
         """
-        i = "\n" + level * "  "
-        if len(elem):
-            if not elem.text or not elem.text.strip():
-                elem.text = i + "  "
-            if not elem.tail or not elem.tail.strip():
-                elem.tail = i
-            for elem in elem:
-                self.indent(elem, level + 1)
-            if not elem.tail or not elem.tail.strip():
-                elem.tail = i
-        else:
-            if level and (not elem.tail or not elem.tail.strip()):
-                elem.tail = i
+        pass
 
     def set_analysisnotebook(self, **data):
         """
@@ -295,8 +229,7 @@ class XBNWriter:
         ...     NAME="Notebook.Cancer Example From Neapolitan", ROOT="Cancer"
         ... )
         """
-        for key, value in data.items():
-            self.network.set(str(key), str(value))
+        pass
 
     def set_bnmodel_name(self, name):
         """
@@ -313,7 +246,7 @@ class XBNWriter:
         >>> writer = XBNWriter()
         >>> writer.set_bnmodel_name("Cancer")
         """
-        self.bnmodel.set("NAME", str(name))
+        pass
 
     def set_static_properties(self, **data):
         """
@@ -332,9 +265,7 @@ class XBNWriter:
         ...     FORMAT="MSR DTAS XML", VERSION="0.2", CREATOR="Microsoft Research DTAS"
         ... )
         """
-        static_prop = etree.SubElement(self.bnmodel, "STATICPROPERTIES")
-        for key, value in data.items():
-            etree.SubElement(static_prop, key, attrib={"VALUE": value})
+        pass
 
     def set_variables(self, data):
         """
@@ -368,25 +299,7 @@ class XBNWriter:
         ...     }
         ... )
         """
-        variables = etree.SubElement(self.bnmodel, "VARIABLES")
-        for var in sorted(data):
-            variable = etree.SubElement(
-                variables,
-                "VAR",
-                attrib={
-                    "NAME": var,
-                    "TYPE": data[var].get("TYPE", ""),
-                    "XPOS": data[var].get("XPOS", ""),
-                    "YPOS": data[var].get("YPOS", ""),
-                },
-            )
-            etree.SubElement(
-                variable,
-                "DESCRIPTION",
-                attrib={"DESCRIPTION": data[var].get("DESCRIPTION", "")},
-            )
-            for state in self.model.states[var]:
-                etree.SubElement(variable, "STATENAME").text = str(state)
+        pass
 
     def set_edges(self, edge_list):
         """
@@ -405,9 +318,7 @@ class XBNWriter:
         ...     [("a", "b"), ("a", "c"), ("b", "d"), ("c", "d"), ("c", "e")]
         ... )
         """
-        structure = etree.SubElement(self.bnmodel, "STRUCTURE")
-        for edge in edge_list:
-            etree.SubElement(structure, "ARC", attrib={"PARENT": edge[0], "CHILD": edge[1]})
+        pass
 
     def set_distributions(self):
         """
@@ -419,34 +330,7 @@ class XBNWriter:
         >>> writer = XBNWriter()
         >>> writer.set_distributions()
         """
-        distributions = etree.SubElement(self.bnmodel, "DISTRIBUTIONS")
-
-        cpds = self.model.get_cpds()
-        cpds.sort(key=lambda x: x.variable)
-        for cpd in cpds:
-            cpd_values = cpd.get_values().transpose()
-            var = cpd.variable
-            dist = etree.SubElement(
-                distributions,
-                "DIST",
-                attrib={"TYPE": self.model.nodes[var].get("TYPE", "")},
-            )
-            etree.SubElement(dist, "PRIVATE", attrib={"NAME": var})
-            dpis = etree.SubElement(dist, "DPIS")
-            evidence = cpd.variables[1:]
-            evidence_card = cpd.cardinality[1:]
-            if evidence:
-                condset = etree.SubElement(dist, "CONDSET")
-                for condelem in evidence:
-                    etree.SubElement(condset, "CONDELEM", attrib={"NAME": condelem})
-                indexes_iter = itertools.product(*[range(card) for card in evidence_card])
-                for val in range(cpd_values.shape[0]):
-                    index_value = " " + " ".join(map(str, next(indexes_iter))) + " "
-                    etree.SubElement(dpis, "DPI", attrib={"INDEXES": index_value}).text = (
-                        " " + " ".join(map(str, cpd_values[val])) + " "
-                    )
-            else:
-                etree.SubElement(dpis, "DPI").text = " " + " ".join(map(str, cpd_values[0])) + " "
+        pass
 
     def write(self, filename):
         """
@@ -464,12 +348,7 @@ class XBNWriter:
         >>> writer = XBNWriter(asia)
         >>> writer.write(filename="asia.xbn")
         """
-        writer = self.__str__()
-        with open(filename, "wb") as fout:
-            fout.write(writer)
+        pass
 
     def write_xbn(self, filename):
-        warnings.warn(
-            "`XBNWriter.write_xbn` is deprecated. Please use `XBNWriter.write` instead.", FutureWarning, stacklevel=2
-        )
-        self.write(filename)
+        pass

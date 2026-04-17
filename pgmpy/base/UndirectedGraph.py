@@ -110,7 +110,7 @@ class UndirectedGraph(nx.Graph):
         {'weight': 0.1}
 
         """
-        super().add_edge(u, v, weight=weight)
+        pass
 
     def add_edges_from(self, ebunch, weights=None):
         """Add all the edges in ebunch.
@@ -161,16 +161,7 @@ class UndirectedGraph(nx.Graph):
         {'weight': 0.5}
 
         """
-        ebunch = list(ebunch)
-
-        if weights:
-            if len(ebunch) != len(weights):
-                raise ValueError("The number of elements in ebunch and weightsshould be equal")
-            for index in range(len(ebunch)):
-                self.add_edge(ebunch[index][0], ebunch[index][1], weight=weights[index])
-        else:
-            for edge in ebunch:
-                self.add_edge(edge[0], edge[1])
+        pass
 
     def is_clique(self, nodes):
         """Check if the given nodes form a clique.
@@ -207,10 +198,7 @@ class UndirectedGraph(nx.Graph):
         True
 
         """
-        for node1, node2 in itertools.combinations(nodes, 2):
-            if not self.has_edge(node1, node2):
-                return False
-        return True
+        pass
 
     def is_triangulated(self):
         """Check whether the undirected graph is triangulated (chordal) or not.
@@ -232,4 +220,4 @@ class UndirectedGraph(nx.Graph):
         True
 
         """
-        return nx.is_chordal(self)
+        pass

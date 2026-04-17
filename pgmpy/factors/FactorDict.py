@@ -28,27 +28,10 @@ class FactorDict(dict):
             FactorDict with each marginal's Factor representing the empirical
                 frequency of the marginal from the dataset.
         """
-        if df.isnull().values.any():
-            raise ValueError("df cannot contain None or np.nan values.")
-
-        factor_dict = cls({})
-        for marginal in marginals:
-            # Subset of columns arranged in a lexographical ordering.
-            _df = df.loc[:, list(marginal)].sort_values(list(marginal))
-            cardinality = list(_df.nunique())
-            # Since we have sorted the columns, this encoding will
-            # also be sorted lexographically.
-            encoded = OrdinalEncoder().fit_transform(_df)
-            factor_dict[marginal] = DiscreteFactor(
-                variables=marginal,
-                cardinality=cardinality,
-                values=np.histogramdd(sample=encoded, bins=cardinality)[0].flatten(),
-                state_names={column: sorted(_df[column].unique().tolist()) for column in marginal},
-            )
-        return factor_dict
+        pass
 
     def get_factors(self):
-        return set(self.values())
+        pass
 
     def __mul__(self, const):
         return FactorDict({clique: const * self[clique] for clique in self})
@@ -67,7 +50,7 @@ class FactorDict(dict):
         return self + -1 * other
 
     def dot(self, other):
-        return sum((self[clique] * other[clique]).values.sum() for clique in self)
+        pass
 
     def product(self):
-        return factor_product(*self.get_factors())
+        pass

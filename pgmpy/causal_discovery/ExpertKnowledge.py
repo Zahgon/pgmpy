@@ -126,12 +126,7 @@ class ExpertKnowledge:
         return "\n".join(lines)
 
     def _validate_edges(self, edge_list):
-        if not hasattr(edge_list, "__iter__"):
-            raise TypeError(f"Expected iterator type for edge information. Got {type(edge_list)} instead.")
-        elif not isinstance(edge_list, set):
-            return set(edge_list)
-        else:
-            return edge_list
+        pass
 
     def _validate_temporal_order(self, nodes):
         """
@@ -146,16 +141,7 @@ class ExpertKnowledge:
         nodes: iterable
             A collection of nodes present in a dataset/graph object.
         """
-        if self.temporal_order == [[]]:
-            return
-
-        # Check if no node is present in multiple tiers
-        if len(set.intersection(*map(set, self.temporal_order))) != 0:
-            raise ValueError("Node found in multiple tiers of temporal order.")
-
-        # Check if all nodes are present in the temporal order
-        if set(chain(*self.temporal_order)) != set(nodes):
-            raise ValueError(f"Missing nodes in temporal order - {set(nodes) - set(chain(*self.temporal_order))}")
+        pass
 
     def _get_temporal_ordering(self, temporal_order):
         """
@@ -175,17 +161,7 @@ class ExpertKnowledge:
         temporal_ordering: dict
             Dictionary with the tier (0, 1, 2, 3 etc.) for each node.
         """
-        if not hasattr(temporal_order, "__iter__"):
-            raise TypeError(f"Expected iterator type for temporal order. Got {type(temporal_order)} instead.")
-
-        temporal_ordering = dict()
-        for order, tier in enumerate(self.temporal_order):
-            for node in tier:
-                if node in temporal_ordering:
-                    raise ValueError(f"Variable {node} present in multiple tiers. Aborting")
-                temporal_ordering[node] = order
-
-        return temporal_ordering
+        pass
 
     def _orient_temporal_forbidden_edges(self, graph, only_edges=True):
         """
@@ -204,23 +180,7 @@ class ExpertKnowledge:
             Whether to only consider the edges in the graph for orientation. If
             False, considers all possible edges between the variables.
         """
-        if self.temporal_ordering == dict():
-            return
-
-        forbidden_edges = []
-        if only_edges:
-            for node in graph.nodes:
-                for neighbor in graph.neighbors(node):
-                    if self.temporal_ordering[neighbor] < self.temporal_ordering[node]:
-                        forbidden_edges.append((node, neighbor))
-        else:
-            for tier in range(1, len(self.temporal_order)):
-                for node in self.temporal_order[tier]:
-                    for lower_tier in range(tier):
-                        for lower_node in self.temporal_order[lower_tier]:
-                            forbidden_edges.append((node, lower_node))
-
-        self.forbidden_edges = self.forbidden_edges.union(forbidden_edges)
+        pass
 
     def apply_expert_knowledge(self, pdag):
         """
@@ -247,32 +207,7 @@ class ExpertKnowledge:
         ----------
         [1] https://doi.org/10.48550/arXiv.2306.01638
         """
-        self._validate_temporal_order(pdag.nodes())
-        self._orient_temporal_forbidden_edges(pdag)
-
-        for edge in self.forbidden_edges:
-            u, v = edge
-
-            if pdag.has_undirected_edge(u, v):
-                pdag.orient_undirected_edge(v, u, inplace=True)
-            elif pdag.has_edge(u, v):
-                logger.warning(
-                    f"Specified expert knowledge conflicts with learned structure. "
-                    f"Ignoring edge {u}->{v} from forbidden edges."
-                )
-
-        for edge in self.required_edges:
-            u, v = edge
-
-            if pdag.has_undirected_edge(u, v):
-                pdag.orient_undirected_edge(u, v, inplace=True)
-            elif pdag.has_edge(u, v) is False:
-                logger.warning(
-                    f"Specified expert knowledge conflicts with learned structure. "
-                    f"Ignoring edge {u}->{v} from required edges"
-                )
-
-        return pdag
+        pass
 
     def limit_search_space(self, data_coulumn_labels):
         """
@@ -290,10 +225,4 @@ class ExpertKnowledge:
         forbidden_edges_additive: set
             Set of edges that are not allowed in the structure.
         """
-        # Generate all possible edges
-        all_possible_edges = set(permutations(data_coulumn_labels, 2))
-
-        # Calculate forbidden edges by subtracting the search space from all possible edges
-        forbidden_edges_additive = set(all_possible_edges) - self.search_space
-
-        self.forbidden_edges = self.forbidden_edges.union(forbidden_edges_additive)
+        pass

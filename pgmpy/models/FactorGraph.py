@@ -86,13 +86,7 @@ class FactorGraph(UndirectedGraph):
         >>> G.add_nodes_from([phi1])
         >>> G.add_edge("a", phi1)
         """
-        if u == v:
-            raise ValueError("Self loops are not allowed")
-
-        if "weight" not in kwargs:
-            kwargs["weight"] = 0  # Fix for compatibility with NetworkX draw()
-
-        super().add_edge(u, v, **kwargs)
+        pass
 
     def add_factors(self, *factors, replace=False):
         """
@@ -116,21 +110,7 @@ class FactorGraph(UndirectedGraph):
         >>> G.add_factors(phi1, phi2)
         >>> G.add_edges_from([("a", phi1), ("b", phi1), ("b", phi2), ("c", phi2)])
         """
-        for factor in factors:
-            if set(factor.variables) - set(factor.variables).intersection(set(self.nodes())):
-                raise ValueError("Factors defined on variable not in the model", factor.__repr__())
-
-            if replace:
-                for fa in self.factors:
-                    if set(factor.variables) == set(fa.variables):
-                        neighbors = self.neighbors(fa)
-                        self.remove_factors(fa)
-                        self.add_node(factor)
-                        self.add_edges_from([(factor, neigh) for neigh in neighbors])
-                self.factors.append(factor)
-
-            else:
-                self.factors.append(factor)
+        pass
 
     def remove_factors(self, *factors):
         """
@@ -146,11 +126,7 @@ class FactorGraph(UndirectedGraph):
         >>> G.add_factors(phi1)
         >>> G.remove_factors(phi1)
         """
-        for factor in factors:
-            self.factors.remove(factor)
-            # If factor is also in the graph, remove the node and corresponding edges.
-            if factor in self.nodes:
-                self.remove_node(factor)
+        pass
 
     def get_cardinality(self, node=None):
         """
@@ -186,17 +162,7 @@ class FactorGraph(UndirectedGraph):
         >>> int(G.get_cardinality("a"))
         2
         """
-        if node:
-            for factor in self.factors:
-                for variable, cardinality in zip(factor.scope(), factor.cardinality):
-                    if node == variable:
-                        return cardinality
-        else:
-            cardinalities = defaultdict(int)
-            for factor in self.factors:
-                for variable, cardinality in zip(factor.scope(), factor.cardinality):
-                    cardinalities[variable] = cardinality
-            return cardinalities
+        pass
 
     def check_model(self):
         """
@@ -212,31 +178,7 @@ class FactorGraph(UndirectedGraph):
         * Check if cardinality of random variable remains same across all the
           factors.
         """
-        variable_nodes = {x for factor in self.factors for x in factor.scope()}
-        factor_nodes = set(self.nodes()) - variable_nodes
-
-        if not all(isinstance(factor_node, DiscreteFactor) for factor_node in factor_nodes):
-            raise ValueError("Factors not associated for all the random variables")
-
-        if not (bipartite.is_bipartite(self)) or not (
-            bipartite.is_bipartite_node_set(self, variable_nodes)
-            or bipartite.is_bipartite_node_set(self, variable_nodes)
-        ):
-            raise ValueError("Edges can only be between variables and factors")
-
-        if len(factor_nodes) != len(self.factors):
-            raise ValueError("Factors not associated with all the factor nodes.")
-
-        cardinalities = self.get_cardinality()
-        if len(variable_nodes) != len(cardinalities):
-            raise ValueError("Factors for all the variables not defined")
-
-        for factor in self.factors:
-            for variable, cardinality in zip(factor.scope(), factor.cardinality):
-                if cardinalities[variable] != cardinality:
-                    raise ValueError(f"Cardinality of variable {variable} not matching among factors")
-
-        return True
+        pass
 
     def get_variable_nodes(self):
         """
@@ -259,10 +201,7 @@ class FactorGraph(UndirectedGraph):
         >>> sorted(G.get_variable_nodes())
         ['a', 'b', 'c']
         """
-        self.check_model()
-
-        variable_nodes = {x for factor in self.factors for x in factor.scope()}
-        return list(variable_nodes)
+        pass
 
     def get_factor_nodes(self):
         """
@@ -289,11 +228,7 @@ class FactorGraph(UndirectedGraph):
         [<DiscreteFactor representing phi(a:2, b:2) at 0x...>,
          <DiscreteFactor representing phi(b:2, c:2) at 0x...>]
         """
-        self.check_model()
-
-        variable_nodes = self.get_variable_nodes()
-        factor_nodes = set(self.nodes()) - set(variable_nodes)
-        return list(factor_nodes)
+        pass
 
     def to_markov_model(self):
         """
@@ -315,20 +250,7 @@ class FactorGraph(UndirectedGraph):
         >>> G.add_edges_from([("a", phi1), ("b", phi1), ("b", phi2), ("c", phi2)])
         >>> mm = G.to_markov_model()
         """
-        mm = DiscreteMarkovNetwork()
-
-        variable_nodes = self.get_variable_nodes()
-
-        if len(set(self.nodes()) - set(variable_nodes)) != len(self.factors):
-            raise ValueError("Factors not associated with all the factor nodes.")
-
-        mm.add_nodes_from(variable_nodes)
-        for factor in self.factors:
-            scope = factor.scope()
-            mm.add_edges_from(itertools.combinations(scope, 2))
-            mm.add_factors(factor)
-
-        return mm
+        pass
 
     def to_junction_tree(self):
         """
@@ -352,8 +274,7 @@ class FactorGraph(UndirectedGraph):
         >>> G.add_edges_from([("a", phi1), ("b", phi1), ("b", phi2), ("c", phi2)])
         >>> mm = G.to_markov_model()
         """
-        mm = self.to_markov_model()
-        return mm.to_junction_tree()
+        pass
 
     def get_factors(self, node=None):
         """
@@ -379,14 +300,7 @@ class FactorGraph(UndirectedGraph):
         >>> G.get_factors(node=phi1)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
         <DiscreteFactor representing phi(a:2, b:2) at 0x...>
         """
-        if node is None:
-            return self.factors
-        else:
-            factor_nodes = self.get_factor_nodes()
-            if node not in factor_nodes:
-                raise ValueError("Factors are not associated with the corresponding node.")
-            factors = list(filter(lambda x: set(x.scope()) == set(self.neighbors(node)), self.factors))
-            return factors[0]
+        pass
 
     def get_partition_function(self):
         r"""
@@ -417,12 +331,7 @@ class FactorGraph(UndirectedGraph):
         >>> round(float(G.get_partition_function()), 14)
         3.50451083471209
         """
-        factor = self.factors[0]
-        factor = factor_product(factor, *[self.factors[i] for i in range(1, len(self.factors))])
-        if set(factor.scope()) != set(self.get_variable_nodes()):
-            raise ValueError("DiscreteFactor for all the random variables not defined.")
-
-        return np.sum(factor.values)
+        pass
 
     def copy(self):
         """
@@ -450,14 +359,7 @@ class FactorGraph(UndirectedGraph):
         <DiscreteFactor representing phi(b:2, c:2) at 0x...>, 'c'))
 
         """
-        copy = FactorGraph(self.edges())
-        copy.add_nodes_from(self.nodes())
-
-        if self.factors:
-            factors_copy = [factor.copy() for factor in self.factors]
-            copy.add_factors(*factors_copy)
-
-        return copy
+        pass
 
     def get_point_mass_message(self, variable, observation):
         """
@@ -482,11 +384,7 @@ class FactorGraph(UndirectedGraph):
         >>> G.get_point_mass_message("a", 1)
         array([0., 1., 0., 0.])
         """
-        card = self.get_cardinality(variable)
-        # Create an array with 1 at the index of the evidence and 0 elsewhere
-        message = np.zeros(card)
-        message[observation] = 1
-        return message
+        pass
 
     def get_uniform_message(self, variable):
         """
@@ -508,5 +406,4 @@ class FactorGraph(UndirectedGraph):
         >>> G.get_uniform_message("a")
         array([0.25, 0.25, 0.25, 0.25])
         """
-        card = self.get_cardinality(variable)
-        return np.ones(card) / card
+        pass

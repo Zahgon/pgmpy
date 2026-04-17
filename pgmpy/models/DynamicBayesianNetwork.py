@@ -64,7 +64,7 @@ class DynamicNode:
         """
         Returns a tuple representation as (node, time_slice) for DynamicNode object.
         """
-        return (self.node, self.time_slice)
+        pass
 
 
 class DynamicBayesianNetwork(DAG):
@@ -189,7 +189,7 @@ class DynamicBayesianNetwork(DAG):
         >>> dbn = DBN()
         >>> dbn.add_node("A")
         """
-        super().add_node(DynamicNode(node, 0), **attr)
+        pass
 
     def add_nodes_from(self, nodes, **attr):
         """
@@ -206,8 +206,7 @@ class DynamicBayesianNetwork(DAG):
         >>> dbn = DBN()
         >>> dbn.add_nodes_from(["A", "B", "C"])
         """
-        for node in nodes:
-            self.add_node(node)
+        pass
 
     def _nodes(self):
         """
@@ -221,10 +220,10 @@ class DynamicBayesianNetwork(DAG):
         >>> sorted(dbn._nodes())
         ['A', 'B', 'C']
         """
-        return list({node for node, timeslice in super().nodes()})
+        pass
 
     def _timeslices(self):
-        return list({timeslice for node, timeslice in super().nodes()})
+        pass
 
     def add_edge(self, start, end, **kwargs):
         """
@@ -256,38 +255,7 @@ class DynamicBayesianNetwork(DAG):
         [(<DynamicNode(D, 0) at 0x...>, <DynamicNode(I, 0) at 0x...>),
         (<DynamicNode(D, 1) at 0x...>, <DynamicNode(I, 1) at 0x...>)]
         """
-        try:
-            if len(start) != 2 or len(end) != 2:
-                raise ValueError("Nodes must be of type (node, time_slice).")
-            elif not isinstance(start[1], int) or not isinstance(end[1], int):
-                raise ValueError("Nodes must be of type (node, time_slice).")
-            elif start[1] == end[1]:
-                start = (start[0], 0)
-                end = (end[0], 0)
-            elif start[1] == end[1] - 1:
-                start = (start[0], 0)
-                end = (end[0], 1)
-            elif start[1] > end[1]:
-                raise NotImplementedError("Edges in backward direction are not allowed.")
-            elif start[1] != end[1]:
-                raise ValueError("Edges over multiple time slices is not currently supported")
-        except TypeError:
-            raise ValueError("Nodes must be of type (node, time_slice).")
-
-        start = DynamicNode(*start)
-        end = DynamicNode(*end)
-
-        if start == end:
-            raise ValueError("Self Loops are not allowed")
-        elif start in super().nodes() and end in super().nodes() and nx.has_path(self, end, start):
-            raise ValueError(f"Loops are not allowed. Adding the edge from ({str(start)} --> {str(end)}) forms a loop.")
-
-        super().add_edge(start, end, **kwargs)
-
-        if start[1] == end[1]:
-            super().add_edge(DynamicNode(start[0], 1 - start[1]), DynamicNode(end[0], 1 - end[1]))
-        else:
-            super().add_node(DynamicNode(end[0], 1 - end[1]))
+        pass
 
     def add_edges_from(self, ebunch, **kwargs):
         """
@@ -320,8 +288,7 @@ class DynamicBayesianNetwork(DAG):
         (<DynamicNode(I, 0) at 0x...>, <DynamicNode(G, 0) at 0x...>),
         (<DynamicNode(I, 1) at 0x...>, <DynamicNode(G, 1) at 0x...>)]
         """
-        for edge in ebunch:
-            self.add_edge(edge[0], edge[1])
+        pass
 
     def get_intra_edges(self, time_slice=0):
         """
@@ -355,12 +322,7 @@ class DynamicBayesianNetwork(DAG):
         (<DynamicNode(G, 0) at 0x...>, <DynamicNode(L, 0) at 0x...>),
         (<DynamicNode(I, 0) at 0x...>, <DynamicNode(G, 0) at 0x...>)]
         """
-        if not isinstance(time_slice, int) or time_slice < 0:
-            raise ValueError("The timeslice should be a positive value greater than or equal to zero")
-
-        return [
-            tuple(DynamicNode(x[0], time_slice) for x in edge) for edge in self.edges() if edge[0][1] == edge[1][1] == 0
-        ]
+        pass
 
     def get_inter_edges(self):
         """
@@ -389,7 +351,7 @@ class DynamicBayesianNetwork(DAG):
         (<DynamicNode(I, 0) at 0x...>, <DynamicNode(I, 1) at 0x...>),
         (<DynamicNode(L, 0) at 0x...>, <DynamicNode(L, 1) at 0x...>)]
         """
-        return [edge for edge in self.edges() if edge[0][1] != edge[1][1]]
+        pass
 
     def get_interface_nodes(self, time_slice=0):
         """
@@ -416,13 +378,7 @@ class DynamicBayesianNetwork(DAG):
         >>> dbn.get_interface_nodes() # doctest: +ELLIPSIS
         [<DynamicNode(D, 0) at 0x...>]
         """
-        if not isinstance(time_slice, int) or time_slice < 0:
-            raise ValueError(
-                f"The timeslice should be a positive integer greater than"
-                f" or equal to zero: ({type(time_slice)}, value: {time_slice})"
-            )
-
-        return [DynamicNode(edge[time_slice][0], edge[time_slice][1]) for edge in self.get_inter_edges()]
+        pass
 
     def get_slice_nodes(self, time_slice=0):
         """
@@ -453,10 +409,7 @@ class DynamicBayesianNetwork(DAG):
         <DynamicNode(L, 0) at 0x...>,
         <DynamicNode(S, 0) at 0x...>]
         """
-        if not isinstance(time_slice, int) or time_slice < 0:
-            raise ValueError("The timeslice should be a positive value greater than or equal to zero")
-
-        return [DynamicNode(node, time_slice) for node in self._nodes()]
+        pass
 
     def add_cpds(self, *cpds):
         """
@@ -519,14 +472,7 @@ class DynamicBayesianNetwork(DAG):
         <TabularCPD representing P(('I', 0):2) at 0x...>,
         <TabularCPD representing P(('I', 1):2 | ('I', 0):2) at 0x...>]
         """
-        for cpd in cpds:
-            if not isinstance(cpd, TabularCPD):
-                raise ValueError("cpd should be an instance of TabularCPD")
-
-            if set(cpd.variables) - set(cpd.variables).intersection(set(super().nodes())):
-                raise ValueError("CPD defined on variable not in the model", cpd)
-
-        self.cpds.extend(cpds)
+        pass
 
     def get_cpds(self, node=None, time_slice=None):
         """
@@ -567,34 +513,7 @@ class DynamicBayesianNetwork(DAG):
         >>> dbn.get_cpds() # doctest: +ELLIPSIS
         [<TabularCPD representing P(('G', 0):3 | ('I', 0):2, ('D', 0):2) at 0x...>]
         """
-
-        if time_slice is None:
-            time_slices = self._timeslices()
-        elif isinstance(time_slice, int) and time_slice >= 0:
-            time_slices = [time_slice]
-        elif isinstance(time_slice, typing.Iterable):
-            if all(isinstance(n, int) for n in time_slice):
-                time_slices = time_slice
-            else:
-                raise ValueError("At least one element inside time_slice iterable is not positive and/or integer")
-        else:
-            raise ValueError("Time slice is not a positive integer neither a iterable of integers")
-
-        if node:
-            if node not in super().nodes():
-                raise ValueError("Node not present in the model.")
-            else:
-                for cpd in self.cpds:
-                    if cpd.variable == node:
-                        return cpd
-        else:
-            return_cpds = []
-            for time_slice in time_slices:
-                for var in self.get_slice_nodes(time_slice=time_slice):
-                    cpd = self.get_cpds(node=var)
-                    if cpd:
-                        return_cpds.append(cpd)
-            return return_cpds
+        pass
 
     def remove_cpds(self, *cpds):
         """
@@ -633,10 +552,7 @@ class DynamicBayesianNetwork(DAG):
         >>> dbn.get_cpds()
         []
         """
-        for cpd in cpds:
-            if isinstance(cpd, (tuple, list)):
-                cpd = self.get_cpds(cpd)
-            self.cpds.remove(cpd)
+        pass
 
     def check_model(self):
         """
@@ -652,21 +568,7 @@ class DynamicBayesianNetwork(DAG):
         boolean: True if everything seems to be order. Otherwise raises error
             according to the problem.
         """
-        for node in super().nodes():
-            cpd = self.get_cpds(node=node)
-            if isinstance(cpd, TabularCPD):
-                evidence = cpd.variables[:0:-1]
-                evidence_card = cpd.cardinality[:0:-1]
-                parents = self.get_parents(node)
-                if set(evidence) != set(parents if parents else []):
-                    raise ValueError(f"CPD associated with {node} doesn't have proper parents associated with it.")
-                if not config.get_compute_backend().allclose(
-                    cpd.to_factor().marginalize([node], inplace=False).values.flatten(),
-                    compat_fns.ones(np.prod(evidence_card)),
-                    atol=0.01,
-                ):
-                    raise ValueError(f"Sum of probabilities of states for node {node} is not equal to 1")
-        return True
+        pass
 
     def initialize_initial_state(self):
         """
@@ -717,41 +619,7 @@ class DynamicBayesianNetwork(DAG):
         >>> student.add_cpds(grade_cpd, d_i_cpd, diff_cpd, intel_cpd, i_i_cpd)
         >>> student.initialize_initial_state()
         """
-        for cpd in self.cpds:
-            temp_var = DynamicNode(cpd.variable[0], 1 - cpd.variable[1])
-            parents = self.get_parents(temp_var)
-            state_names = self.states.copy()
-            state_names[temp_var] = state_names[cpd.variable]
-            if not any(x.variable == temp_var for x in self.cpds):
-                if all(x[1] == parents[0][1] for x in parents):
-                    if parents:
-                        evidence_card = cpd.cardinality[1:]
-                        new_cpd = TabularCPD(
-                            temp_var,
-                            cpd.variable_card,
-                            cpd.values.reshape(cpd.variable_card, np.prod(evidence_card)),
-                            parents,
-                            evidence_card,
-                            state_names.copy(),
-                        )
-                    else:
-                        if cpd.get_evidence():
-                            initial_cpd = cpd.marginalize(cpd.get_evidence(), inplace=False)
-                            new_cpd = TabularCPD(
-                                temp_var,
-                                cpd.variable_card,
-                                np.reshape(initial_cpd.values, (2, -1)),
-                                state_names=state_names.copy(),
-                            )
-                        else:
-                            new_cpd = TabularCPD(
-                                temp_var,
-                                cpd.variable_card,
-                                np.reshape(cpd.values, (2, -1)),
-                                state_names=state_names.copy(),
-                            )
-                    self.add_cpds(new_cpd)
-            self.check_model()
+        pass
 
     def moralize(self):
         """
@@ -774,12 +642,7 @@ class DynamicBayesianNetwork(DAG):
         (<DynamicNode(G, 0) at 0x...>, <DynamicNode(I, 0) at 0x...>),
         (<DynamicNode(G, 1) at 0x...>, <DynamicNode(I, 1) at 0x...>)]
         """
-        moral_graph = self.to_undirected()
-
-        for node in super().nodes():
-            moral_graph.add_edges_from(combinations(self.get_parents(node), 2))
-
-        return moral_graph
+        pass
 
     def copy(self):
         """
@@ -828,40 +691,11 @@ class DynamicBayesianNetwork(DAG):
         >>> dbn_copy.get_cpds() # doctest: +ELLIPSIS
         [<TabularCPD representing P(('G', 0):3 | ('I', 0):2, ('D', 0):2) at 0x...>]
         """
-        dbn = DynamicBayesianNetwork()
-        dbn.add_nodes_from(self._nodes())
-        edges = [(u.to_tuple(), v.to_tuple()) for (u, v) in self.edges()]
-        dbn.add_edges_from(edges)
-        cpd_copy = [cpd.copy() for cpd in self.get_cpds()]
-        dbn.add_cpds(*cpd_copy)
-        return dbn
+        pass
 
     def get_markov_blanket(self, node):
         # Wrap node into DynamicNode
-        if not isinstance(node, DynamicNode):
-            node = DynamicNode(*node)
-        # Get standard Markov blanket
-        markov_blanket = set(super().get_markov_blanket(node))
-
-        # Augment Markov blanket:
-        # if node is in the last time slice, unroll and add children nodes from next time slice
-        max_ts = max([n.time_slice for n in self.nodes()])
-        if node.time_slice == max_ts:
-            # Move node to previous time slice and get children
-            temp_children = self.get_children(DynamicNode(node.node, node.time_slice - 1))
-            # Move children to next time slice
-            next_children = {DynamicNode(child.node, child.time_slice + 1) for child in temp_children}
-            # Get children parents
-            next_parents = set(chain(*[self.get_parents(child) for child in temp_children]))
-            # Get children's parents
-            temp_parents = {parent for child in temp_children for parent in self.get_parents(child)}
-            # Move children's parents to next time slice
-            next_parents = {DynamicNode(parent.node, parent.time_slice + 1) for parent in temp_parents}
-            # Add them to Markov blanket
-            markov_blanket = markov_blanket | next_children
-            markov_blanket = markov_blanket | next_parents
-
-        return sorted(markov_blanket)
+        pass
 
     def get_constant_bn(self, t_slice=0):
         """
@@ -872,33 +706,7 @@ class DynamicBayesianNetwork(DAG):
 
         The node names are changed to strings in the form `{var}_{time}`.
         """
-        from pgmpy.models import DiscreteBayesianNetwork
-
-        edges = [
-            (
-                str(u[0]) + "_" + str(u[1] + t_slice),
-                str(v[0]) + "_" + str(v[1] + t_slice),
-            )
-            for u, v in self.edges()
-        ]
-        new_cpds = []
-        for cpd in self.cpds:
-            new_vars = [str(var) + "_" + str(time + t_slice) for var, time in cpd.variables]
-            new_state_names = dict(zip(new_vars, [cpd.state_names[var] for var in cpd.variables]))
-            new_cpds.append(
-                TabularCPD(
-                    variable=new_vars[0],
-                    variable_card=cpd.cardinality[0],
-                    values=cpd.get_values(),
-                    evidence=new_vars[1:],
-                    evidence_card=cpd.cardinality[1:],
-                    state_names=new_state_names,
-                )
-            )
-
-        bn = DiscreteBayesianNetwork(edges)
-        bn.add_cpds(*new_cpds)
-        return bn
+        pass
 
     def fit(self, data, estimator="MLE"):
         """
@@ -942,79 +750,14 @@ class DynamicBayesianNetwork(DAG):
         >>> colnames = []
         >>> for t in range(5):
         ...     colnames.extend([("A", t), ("B", t), ("C", t), ("D", t)])
-        ...
+        pass
         >>> df = pd.DataFrame(data, columns=colnames)
         >>> model.fit(df)
         """
-        if not isinstance(data, pd.DataFrame):
-            raise ValueError(f"data must be a pandas dataframe. Got: {type(data)}")
-
-        if min(data.columns, key=lambda t: t[1])[1] != 0:
-            raise ValueError("data column names must start from time slice 0.")
-
-        if estimator not in {"MLE", "mle"}:
-            raise ValueError("Only Maximum Likelihood Estimator is supported currently")
-
-        # Make a copy and replace tuple column names with str.
-        data_copy = data.copy()
-        data_copy.columns = [str(var) + "_" + str(t) for (var, t) in data.columns]
-
-        n_samples = data.shape[0]
-        const_bn = self.get_constant_bn()
-        n_time_slices = max(data.columns, key=lambda t: t[1])[1]
-
-        for t_slice in range(n_time_slices):
-            # Get the columns names for this time slice
-            colnames = [str(node) + "_" + str(t_slice) for node in self._nodes()]
-            colnames.extend([str(node) + "_" + str(t_slice + 1) for node in self._nodes()])
-
-            # Select the data frame for this time slice
-            df_slice = data_copy.loc[:, colnames]
-
-            # Change the column time slice to match the constant Bayesian Network.
-            tuple_colnames = [var.rsplit("_", 1) for var in df_slice.columns]
-            new_colnames = [str(node) + "_" + str(int(t) - t_slice) for (node, t) in tuple_colnames]
-            df_slice.columns = new_colnames
-
-            # Fit or fit_update with df_slice depending on the time slice
-            if t_slice == 0:
-                const_bn.fit(df_slice)
-            else:
-                const_bn.fit_update(df_slice, n_prev_samples=t_slice * n_samples)
-
-        cpds = []
-        for cpd in const_bn.cpds:
-            var_tuples = [var.rsplit("_", 1) for var in cpd.variables]
-            new_vars = [DynamicNode(var, int(t)) for var, t in var_tuples]
-            new_state_names = dict(zip(new_vars, [cpd.state_names[var] for var in cpd.variables]))
-            cpds.append(
-                TabularCPD(
-                    variable=new_vars[0],
-                    variable_card=cpd.variable_card,
-                    values=cpd.get_values(),
-                    evidence=new_vars[1:],
-                    evidence_card=cpd.cardinality[1:],
-                    state_names=new_state_names,
-                )
-            )
-
-        self.add_cpds(*cpds)
+        pass
 
     def active_trail_nodes(self, variables, observed=None, include_latents=False):
-        if not isinstance(variables, DynamicNode):
-            # Wrap variables in DynamicNode objects
-            if len(variables) == 2 and isinstance(variables[1], int):
-                variables = DynamicNode(*variables)
-            else:
-                variables = [DynamicNode(*v) for v in variables]
-        if observed is not None and len(observed) > 0 and any([not isinstance(o, DynamicNode) for o in observed]):
-            # Wrap observed in DynamicNode objects
-            if len(observed) == 2 and isinstance(observed[1], int):
-                observed = DynamicNode(*observed)
-            else:
-                observed = [DynamicNode(*o) for o in observed]
-        # Call super method
-        return super().active_trail_nodes(variables, observed, include_latents)
+        pass
 
     @staticmethod
     def _postprocess(df):
@@ -1024,15 +767,7 @@ class DynamicBayesianNetwork(DAG):
            starting with `__`
         2. Change the column names from str to tuples.
         """
-        # Step 1: Remove virtual evidence columns
-        non_virt_cols = [col for col in df.columns if not col.startswith("__")]
-        df = df.loc[:, non_virt_cols]
-
-        # Step 2: Change the column names
-        tuple_cols = [col.rsplit("_", 1) for col in df.columns]
-        new_cols = [(var, int(t)) for var, t in tuple_cols]
-        df.columns = new_cols
-        return df
+        pass
 
     def simulate(
         self,
@@ -1241,93 +976,7 @@ class DynamicBayesianNetwork(DAG):
                  1     0  1  1
                  2     1  0  1
         """
-
-        # Step 1: Create some data structures for easily accessing values
-        do = {} if do is None else do
-        evidence = {} if evidence is None else evidence
-        virtual_intervention = [] if virtual_intervention is None else virtual_intervention
-        virtual_evidence = [] if virtual_evidence is None else virtual_evidence
-
-        do_dict = defaultdict(dict)
-        evidence_dict = defaultdict(dict)
-        virtual_inter_dict = defaultdict(list)
-        virtual_evi_dict = defaultdict(list)
-
-        for var, state in do.items():
-            do_dict[var[1]][str(var[0]) + "_" + str(var[1])] = state
-        for var, state in evidence.items():
-            evidence_dict[var[1]][str(var[0]) + "_" + str(var[1])] = state
-        for cpd in virtual_intervention:
-            new_vars = [str(var[0]) + "_" + str(var[1]) for var in cpd.variables]
-            new_cpd = TabularCPD(
-                variable=new_vars[0],
-                variable_card=cpd.cardinality[0],
-                values=cpd.get_values(),
-                evidence=new_vars[1:],
-                evidence_card=cpd.cardinality[1:],
-            )
-            virtual_inter_dict[cpd.variables[0][1]].append(new_cpd)
-        for cpd in virtual_evidence:
-            new_vars = [str(var[0]) + "_" + str(var[1]) for var in cpd.variables]
-            new_cpd = TabularCPD(
-                variable=new_vars[0],
-                variable_card=cpd.cardinality[0],
-                values=cpd.get_values(),
-                evidence=new_vars[1:],
-                evidence_card=cpd.cardinality[1:],
-            )
-            virtual_evi_dict[cpd.variables[0][1]].append(new_cpd)
-
-        # Step 2: Generate first two time samples
-        const_bn = self.get_constant_bn(t_slice=0)
-        sampled = const_bn.simulate(
-            n_samples=n_samples,
-            do={**do_dict[0], **do_dict[1]},
-            evidence={**evidence_dict[0], **evidence_dict[1]},
-            virtual_evidence=[*virtual_evi_dict[0], *virtual_evi_dict[1]],
-            virtual_intervention=[*virtual_inter_dict[0], *virtual_inter_dict[1]],
-            include_latents=True,
-            seed=seed,
-            show_progress=False,
-        )
-        if n_time_slices == 1:
-            sampled = self._postprocess(sampled)
-            sampled = sampled.loc[:, [col for col in sampled.columns if col[1] == 0]]
-
-        elif n_time_slices == 2:
-            sampled = self._postprocess(sampled)
-
-        else:
-            # Step 3: If n_time_slices > 2, iterate over the time slices and generate samples
-            for t_slice in range(1, n_time_slices - 1):
-                const_bn = self.get_constant_bn(t_slice=t_slice)
-                partial_colnames = [str(node) + "_" + str(t_slice) for node in self._nodes()]
-                partial_df = sampled.loc[:, partial_colnames]
-                remaining_df = sampled.loc[:, ~sampled.columns.isin(partial_colnames)]
-                new_samples = const_bn.simulate(
-                    n_samples=n_samples,
-                    do={**do_dict[t_slice], **do_dict[t_slice + 1]},
-                    evidence={**evidence_dict[t_slice], **evidence_dict[t_slice + 1]},
-                    virtual_evidence=[
-                        *virtual_evi_dict[t_slice],
-                        *virtual_evi_dict[t_slice + 1],
-                    ],
-                    virtual_intervention=[
-                        *virtual_inter_dict[t_slice],
-                        *virtual_inter_dict[t_slice + 1],
-                    ],
-                    include_latents=True,
-                    partial_samples=partial_df,
-                    seed=seed,
-                    show_progress=False,
-                )
-                sampled = pd.concat((remaining_df, new_samples), axis=1)
-
-            sampled = self._postprocess(sampled)
-
-        if return_format == "wide":
-            return sampled
-        return to_timeseries_format(df=sampled, return_format=return_format)
+        pass
 
     @property
     def states(self):
@@ -1339,6 +988,4 @@ class DynamicBayesianNetwork(DAG):
         state_dict: dict
             Dictionary of nodes to possible states
         """
-        state_names_list = [cpd.state_names for cpd in self.cpds]
-        state_dict = {node: states for d in state_names_list for node, states in d.items()}
-        return state_dict
+        pass

@@ -74,11 +74,7 @@ class ClusterGraph(UndirectedGraph):
         >>> G = ClusterGraph()
         >>> G.add_node(("a", "b", "c"))
         """
-        if not isinstance(node, (list, set, tuple)):
-            raise TypeError("Node can only be a list, set or tuple of nodes forming a clique")
-
-        node = tuple(node)
-        super().add_node(node, **kwargs)
+        pass
 
     def add_nodes_from(self, nodes, **kwargs):
         """
@@ -95,8 +91,7 @@ class ClusterGraph(UndirectedGraph):
         >>> G = ClusterGraph()
         >>> G.add_nodes_from([("a", "b"), ("a", "b", "c")])
         """
-        for node in nodes:
-            self.add_node(node, **kwargs)
+        pass
 
     def add_edge(self, u, v, **kwargs):
         """
@@ -116,12 +111,7 @@ class ClusterGraph(UndirectedGraph):
         ...     [(("a", "b", "c"), ("a", "b")), (("a", "b", "c"), ("a", "c"))]
         ... )
         """
-        set_u = set(u)
-        set_v = set(v)
-        if set_u.isdisjoint(set_v):
-            raise ValueError("No sepset found between these two edges.")
-
-        super().add_edge(u, v)
+        pass
 
     def add_factors(self, *factors):
         """
@@ -150,13 +140,7 @@ class ClusterGraph(UndirectedGraph):
         ... )
         >>> student.add_factors(factor)
         """
-        for factor in factors:
-            factor_scope = set(factor.scope())
-            nodes = [set(node) for node in self.nodes()]
-            if factor_scope not in nodes:
-                raise ValueError("Factors defined on clusters of variable notpresent in model")
-
-            self.factors.append(factor)
+        pass
 
     def get_factors(self, node=None):
         """
@@ -184,16 +168,7 @@ class ClusterGraph(UndirectedGraph):
         >>> G.get_factors(node=("a", "b", "c"))  # doctest: +ELLIPSIS
         <DiscreteFactor representing phi(a:2, b:2, c:2) at 0x...>
         """
-        if node is None:
-            return self.factors
-        else:
-            nodes = [set(n) for n in self.nodes()]
-
-            if set(node) not in nodes:
-                raise ValueError("Node not present in Cluster Graph")
-
-            factors = filter(lambda x: set(x.scope()) == set(node), self.factors)
-            return next(factors)
+        pass
 
     def remove_factors(self, *factors):
         """
@@ -212,8 +187,7 @@ class ClusterGraph(UndirectedGraph):
         >>> student.add_factors(factor)
         >>> student.remove_factors(factor)
         """
-        for factor in factors:
-            self.factors.remove(factor)
+        pass
 
     @property
     def clique_beliefs(self) -> FactorDict:
@@ -241,12 +215,11 @@ class ClusterGraph(UndirectedGraph):
         >>> len(G.clique_beliefs)
         3
         """
-        return FactorDict({clique: self.get_factors(clique) for clique in self.nodes()})
+        pass
 
     @clique_beliefs.setter
     def clique_beliefs(self, clique_beliefs: FactorDict) -> None:
-        self.remove_factors(*self.get_factors())
-        self.add_factors(*clique_beliefs.values())
+        pass
 
     def get_cardinality(self, node=None):
         """
@@ -283,18 +256,7 @@ class ClusterGraph(UndirectedGraph):
         >>> student.get_cardinality(node="Alice")
         np.int64(2)
         """
-        if node:
-            for factor in self.factors:
-                for variable, cardinality in zip(factor.scope(), factor.cardinality):
-                    if node == variable:
-                        return cardinality
-
-        else:
-            cardinalities = defaultdict(int)
-            for factor in self.factors:
-                for variable, cardinality in zip(factor.scope(), factor.cardinality):
-                    cardinalities[variable] = cardinality
-            return cardinalities
+        pass
 
     def get_partition_function(self):
         r"""
@@ -324,10 +286,7 @@ class ClusterGraph(UndirectedGraph):
         >>> G.get_partition_function()  # doctest: +ELLIPSIS
         np.float64(...)
         """
-        if self.check_model():
-            factor = self.factors[0]
-            factor = factor_product(factor, *[self.factors[i] for i in range(1, len(self.factors))])
-            return compat_fns.sum(factor.values)
+        pass
 
     def check_model(self):
         """
@@ -347,21 +306,7 @@ class ClusterGraph(UndirectedGraph):
         check: boolean
             True if all the checks are passed
         """
-        for clique in self.nodes():
-            factors = filter(lambda x: set(x.scope()) == set(clique), self.factors)
-            if not any(factors):
-                raise ValueError("Factors for all the cliques or clusters not defined.")
-
-        cardinalities = self.get_cardinality()
-        if len({x for clique in self.nodes() for x in clique}) != len(cardinalities):
-            raise ValueError("Factors for all the variables not defined.")
-
-        for factor in self.factors:
-            for variable, cardinality in zip(factor.scope(), factor.cardinality):
-                if cardinalities[variable] != cardinality:
-                    raise ValueError(f"Cardinality of variable {variable} not matching among factors")
-
-        return True
+        pass
 
     def copy(self):
         """
@@ -389,8 +334,4 @@ class ClusterGraph(UndirectedGraph):
         >>> sorted(graph_copy.nodes())
         [('a', 'b'), ('b', 'c')]
         """
-        copy = ClusterGraph(self.edges())
-        if self.factors:
-            factors_copy = [factor.copy() for factor in self.factors]
-            copy.add_factors(*factors_copy)
-        return copy
+        pass

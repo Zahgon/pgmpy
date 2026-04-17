@@ -81,8 +81,7 @@ class XMLBIFReader:
         >>> sorted(reader.get_variables())
         ['asia', 'bronc', 'dysp', 'either', 'lung', 'smoke', 'tub', 'xray']
         """
-        variables = [variable.find("NAME").text for variable in self.network.findall("VARIABLE")]
-        return variables
+        pass
 
     def get_edges(self):
         """
@@ -102,8 +101,7 @@ class XMLBIFReader:
         ['tub', 'either'], ['smoke', 'lung'],
         ['asia', 'tub'], ['either', 'xray']]
         """
-        edge_list = [[value, key] for key in self.variable_parents for value in self.variable_parents[key]]
-        return edge_list
+        pass
 
     def get_states(self):
         """
@@ -127,11 +125,7 @@ class XMLBIFReader:
         'tub': ['yes', 'no'],
         'xray': ['yes', 'no']}
         """
-        variable_states = {
-            variable.find("NAME").text: [outcome.text for outcome in variable.findall("OUTCOME")]
-            for variable in self.network.findall("VARIABLE")
-        }
-        return variable_states
+        pass
 
     def get_parents(self):
         """
@@ -155,11 +149,7 @@ class XMLBIFReader:
         'tub': ['asia'],
         'xray': ['either']}
         """
-        variable_parents = {
-            definition.find("FOR").text: [edge.text for edge in definition.findall("GIVEN")]
-            for definition in self.network.findall("DEFINITION")
-        }
-        return variable_parents
+        pass
 
     def get_values(self):
         """
@@ -184,22 +174,7 @@ class XMLBIFReader:
            [0.95, 0.99]]), 'xray': array([[0.98, 0.05],
            [0.02, 0.95]])}
         """
-        variable_CPD = {
-            definition.find("FOR").text: list(map(float, table.text.split()))
-            for definition in self.network.findall("DEFINITION")
-            for table in definition.findall("TABLE")
-        }
-        for variable in variable_CPD:
-            arr = np.array(variable_CPD[variable])
-            arr = arr.reshape(
-                (
-                    len(self.variable_states[variable]),
-                    arr.size // len(self.variable_states[variable]),
-                ),
-                order="F",
-            )
-            variable_CPD[variable] = arr
-        return variable_CPD
+        pass
 
     def get_property(self):
         """
@@ -218,11 +193,7 @@ class XMLBIFReader:
         'either': [None], 'lung': [None], 'smoke': [None],
         'tub': [None], 'xray': [None]}
         """
-        variable_property = {
-            variable.find("NAME").text: [property.text for property in variable.findall("PROPERTY")]
-            for variable in self.network.findall("VARIABLE")
-        }
-        return variable_property
+        pass
 
     def get_model(self, state_name_type=str):
         """
@@ -247,36 +218,7 @@ class XMLBIFReader:
         >>> reader = XMLBIFReader("xmlbif_test.xml")
         >>> model = reader.get_model()
         """
-        model = DiscreteBayesianNetwork()
-        model.add_nodes_from(self.variables)
-        model.add_edges_from(self.edge_list)
-        model.name = self.network_name
-
-        tabular_cpds = []
-        for var, values in self.variable_CPD.items():
-            evidence_card = [len(self.variable_states[evidence_var]) for evidence_var in self.variable_parents[var]]
-            cpd = TabularCPD(
-                var,
-                len(self.variable_states[var]),
-                values,
-                evidence=self.variable_parents[var],
-                evidence_card=evidence_card,
-                state_names={
-                    var: list(map(state_name_type, self.state_names[var]))
-                    for var in chain([var], self.variable_parents[var])
-                },
-            )
-            tabular_cpds.append(cpd)
-
-        model.add_cpds(*tabular_cpds)
-
-        for node, properties in self.variable_property.items():
-            for prop in properties:
-                if prop is not None:
-                    prop_name, prop_value = map(lambda t: t.strip(), prop.split("="))
-                    model.nodes[node][prop_name] = prop_value
-
-        return model
+        pass
 
 
 class XMLBIFWriter:
@@ -343,19 +285,7 @@ class XMLBIFWriter:
         """
         Inplace prettyprint formatter.
         """
-        i = "\n" + level * "  "
-        if len(elem):
-            if not elem.text or not elem.text.strip():
-                elem.text = i + "  "
-            if not elem.tail or not elem.tail.strip():
-                elem.tail = i
-            for elem in elem:
-                self.indent(elem, level + 1)
-            if not elem.tail or not elem.tail.strip():
-                elem.tail = i
-        else:
-            if level and (not elem.tail or not elem.tail.strip()):
-                elem.tail = i
+        pass
 
     def get_variables(self):
         """
@@ -381,12 +311,7 @@ class XMLBIFWriter:
         'tub': <Element 'VARIABLE' at 0x...>,
         'xray': <Element 'VARIABLE' at 0x...>}
         """
-        variables = self.model.nodes()
-        variable_tag = {}
-        for var in sorted(variables):
-            variable_tag[var] = etree.SubElement(self.network, "VARIABLE", attrib={"TYPE": "nature"})
-            etree.SubElement(variable_tag[var], "NAME").text = var
-        return variable_tag
+        pass
 
     def get_states(self):
         """
@@ -412,49 +337,14 @@ class XMLBIFWriter:
         'tub': [<Element 'OUTCOME' at 0x...>, <Element 'OUTCOME' at 0x...>],
         'xray': [<Element 'OUTCOME' at 0x...>, <Element 'OUTCOME' at 0x...>]}
         """
-        outcome_tag = {}
-        cpds = self.model.get_cpds()
-        for cpd in cpds:
-            var = cpd.variable
-            outcome_tag[var] = []
-            if cpd.state_names is None or cpd.state_names.get(var) is None:
-                states = range(cpd.get_cardinality([var])[var])
-            else:
-                states = cpd.state_names[var]
-
-            for state in states:
-                state_tag = etree.SubElement(self.variables[var], "OUTCOME")
-                self.variable_name = var  # Set the current variable name
-                state_tag.text = self._make_valid_state_name(state)
-                outcome_tag[var].append(state_tag)
-        return outcome_tag
+        pass
 
     def _make_valid_state_name(self, state_name):
         """Transform the input state_name into a valid state in XMLBIF.
         XMLBIF states must start with a letter and only contain letters,
         numbers and underscores.
         """
-        s = str(state_name)
-
-        # Warn about commas in state names as they can cause issues when loading
-        if "," in s:
-            var_name = self.variable_name if hasattr(self, "variable_name") else "unknown"
-            logger.warning(
-                f"State name '{s}' for variable '{var_name}' contains commas. "
-                "This may cause issues when loading the file. Consider removing any special characters."
-            )
-
-        # Keep existing transformation logic
-        s_fixed = pp.CharsNotIn(pp.alphanums + "_").set_parse_action(pp.replace_with("_")).transform_string(s)
-        if not s_fixed[0].isalpha():
-            s_fixed = s_fixed
-
-        if s != s_fixed:
-            logger.warning(
-                f"State name '{s}' has been modified to '{s_fixed}' to comply with XMLBIF format requirements. "
-                "XMLBIF states must start with a letter and only contain letters, numbers, and underscores."  # noqa: E501
-            )
-        return s_fixed
+        pass
 
     def get_properties(self):
         """
@@ -480,14 +370,7 @@ class XMLBIFWriter:
         'tub': <Element 'PROPERTY' at 0x...>,
         'xray': <Element 'PROPERTY' at 0x...>}
         """
-        variables = self.model.nodes()
-        property_tag = {}
-        for var in sorted(variables):
-            properties = self.model.nodes[var]
-            property_tag[var] = etree.SubElement(self.variables[var], "PROPERTY")
-            for prop, val in properties.items():
-                property_tag[var].text = str(prop) + " = " + str(val)
-        return property_tag
+        pass
 
     def get_definition(self):
         """
@@ -513,16 +396,7 @@ class XMLBIFWriter:
         'tub': <Element 'DEFINITION' at 0x...>,
         'xray': <Element 'DEFINITION' at 0x...>}
         """
-        cpds = self.model.get_cpds()
-        cpds.sort(key=lambda x: x.variable)
-        definition_tag = {}
-        for cpd in cpds:
-            definition_tag[cpd.variable] = etree.SubElement(self.network, "DEFINITION")
-            etree.SubElement(definition_tag[cpd.variable], "FOR").text = cpd.variable
-            for parent in cpd.variables[1:]:
-                etree.SubElement(definition_tag[cpd.variable], "GIVEN").text = parent
-
-        return definition_tag
+        pass
 
     def get_values(self):
         """
@@ -548,16 +422,7 @@ class XMLBIFWriter:
         'tub': <Element 'TABLE' at 0x...>,
         'xray': <Element 'TABLE' at 0x...>}
         """
-        cpds = self.model.get_cpds()
-        definition_tag = self.definition
-        table_tag = {}
-        for cpd in cpds:
-            table_tag[cpd.variable] = etree.SubElement(definition_tag[cpd.variable], "TABLE")
-            table_tag[cpd.variable].text = ""
-            for val in compat_fns.ravel_f(cpd.get_values()):
-                table_tag[cpd.variable].text += str(val) + " "
-
-        return table_tag
+        pass
 
     def write(self, filename):
         """
@@ -575,13 +440,7 @@ class XMLBIFWriter:
         >>> writer = XMLBIFWriter(model)
         >>> writer.write("asia.xml")
         """
-        with open(filename, "w") as fout:
-            fout.write(self.__str__())
+        pass
 
     def write_xmlbif(self, filename):
-        warnings.warn(
-            "`XMLBIFWriter.write_xmlbif` is deprecated. Please use `XMLBIFWriter.write` instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        self.write(filename)
+        pass

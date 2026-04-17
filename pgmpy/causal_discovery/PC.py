@@ -218,58 +218,7 @@ class PC(_ConstraintMixin, _BaseCausalDiscovery):
         self : pgmpy.causal_discovery.PC
             Returns the instance with the fitted attributes.
         """
-
-        # CI test
-        ci_test = get_ci_test(test=self.ci_test, data=X)
-
-        if self.expert_knowledge is None:
-            expert_knowledge = ExpertKnowledge()
-        else:
-            expert_knowledge = self.expert_knowledge
-
-        if expert_knowledge.search_space:
-            expert_knowledge.limit_search_space(X.columns)
-
-        # Step 1: Build the skeleton
-        self.skeleton_, self.separating_sets_ = self._build_skeleton(
-            data=X,
-            independencies=independencies,
-            variant=self.variant,
-            ci_test=ci_test,
-            significance_level=self.significance_level,
-            max_cond_vars=self.max_cond_vars,
-            expert_knowledge=expert_knowledge,
-            enforce_expert_knowledge=self.enforce_expert_knowledge,
-            n_jobs=self.n_jobs,
-            show_progress=self.show_progress,
-        )
-
-        # Step 2: Use separating sets to orient colliders
-        pdag = self._orient_colliders(self.skeleton_, self.separating_sets_, expert_knowledge.temporal_ordering)
-
-        # Step 3: apply orientation rules and expert knowledge
-        if expert_knowledge.temporal_order != [[]]:
-            pdag = expert_knowledge.apply_expert_knowledge(pdag)
-            pdag = pdag.apply_meeks_rules(apply_r4=True)
-        elif not self.enforce_expert_knowledge:
-            pdag = pdag.apply_meeks_rules(apply_r4=False)
-            pdag = expert_knowledge.apply_expert_knowledge(pdag)
-            pdag = pdag.apply_meeks_rules(apply_r4=True)
-        else:
-            pdag = pdag.apply_meeks_rules(apply_r4=False)
-
-        pdag.add_nodes_from(set(X.columns) - set(pdag.nodes()))
-
-        if self.return_type in ("pdag", "cpdag"):
-            self.causal_graph_ = pdag
-        elif self.return_type == "dag":
-            self.causal_graph_ = pdag.to_dag()
-        else:
-            raise ValueError(f"return_type must be one of: dag, pdag, or cpdag. Got: {self.return_type}")
-
-        self.adjacency_matrix_ = nx.to_pandas_adjacency(self.causal_graph_, weight=1, dtype="int")
-
-        return self
+        pass
 
     @staticmethod
     def _orient_colliders(
@@ -320,31 +269,4 @@ class PC(_ConstraintMixin, _BaseCausalDiscovery):
         >>> sorted(pdag.edges())
         [('Pollution', 'Cancer'), ('Xray', 'Cancer')]
         """
-
-        pdag = skeleton.to_directed()
-
-        # 1) for each X-Z-Y, if Z not in the separating set of X,Y, then orient edges
-        # as X->Z<-Y (Algorithm 3.4 in Koller & Friedman PGM, page 86)
-        for X, Y in combinations(sorted(pdag.nodes()), 2):
-            if not skeleton.has_edge(X, Y):
-                for Z in set(skeleton.neighbors(X)) & set(skeleton.neighbors(Y)):
-                    if Z not in separating_sets[frozenset((X, Y))]:
-                        if (temporal_ordering == dict()) or (
-                            (temporal_ordering[Z] >= temporal_ordering[X])
-                            and (temporal_ordering[Z] >= temporal_ordering[Y])
-                        ):
-                            pdag.remove_edges_from([(Z, X), (Z, Y)])
-
-        edges = set(pdag.edges())
-        undirected_edges = set()
-        directed_edges = set()
-        for u, v in edges:
-            if (v, u) in edges:
-                undirected_edges.add(tuple(sorted((u, v))))
-            else:
-                directed_edges.add((u, v))
-
-        pdag_oriented = PDAG(directed_ebunch=directed_edges, undirected_ebunch=undirected_edges)
-        pdag_oriented.add_nodes_from(pdag.nodes())
-
-        return pdag_oriented
+        pass

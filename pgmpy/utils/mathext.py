@@ -44,23 +44,7 @@ def cartesian(arrays: list[Any], out: np.ndarray | None = None) -> np.ndarray:
            [3, 5, 7]])
 
     """
-    arrays = [np.asarray(x) for x in arrays]
-    shape = [len(x) for x in arrays]
-    dtype = arrays[0].dtype
-
-    ix = np.indices(shape)
-    ix = ix.reshape(len(arrays), -1).T
-
-    result: np.ndarray
-    if out is None:
-        result = np.empty_like(ix, dtype=dtype)
-    else:
-        result = out
-
-    for n, _ in enumerate(arrays):
-        result[:, n] = arrays[n][ix[:, n]]
-
-    return result
+    pass
 
 
 def _adjusted_weights(weights: np.ndarray):
@@ -83,14 +67,7 @@ def _adjusted_weights(weights: np.ndarray):
     >>> int(np.sum(result != 0.1111111))  # Exactly one element was adjusted
     1
     """
-    error = 1 - weights.sum()
-    if abs(error) > 1e-3:
-        raise ValueError("The probability values do not sum to 1.")
-    elif error != 0:
-        logger.warning(f"Probability values don't exactly sum to 1. Differ by: {error}. Adjusting values.")
-        weights[compat_fns.argmax(weights)] += error
-
-    return weights
+    pass
 
 
 def sample_discrete(values, weights: np.ndarray | list[np.ndarray], size=1, seed: int | None = None):
@@ -125,21 +102,7 @@ def sample_discrete(values, weights: np.ndarray | list[np.ndarray], size=1, seed
     >>> sample_discrete(values, probabilities, 10, seed=0).tolist()
     ['v_1', 'v_2', 'v_1', 'v_1', 'v_1', 'v_1', 'v_1', 'v_2', 'v_2', 'v_1']
     """
-    if seed is not None:
-        np.random.seed(seed)
-    weights = compat_fns.to_numpy(weights)
-    if weights.ndim == 1:
-        return np.random.choice(compat_fns.to_numpy(values), size=size, p=_adjusted_weights(weights))
-    else:
-        samples = np.zeros(size, dtype=int)
-        unique_weights, counts = np.unique(weights, axis=0, return_counts=True)
-        for index, size in enumerate(counts):
-            samples[(weights == unique_weights[index]).all(axis=1)] = np.random.choice(
-                compat_fns.to_numpy(values),
-                size=size,
-                p=_adjusted_weights(unique_weights[index]),
-            )
-        return samples
+    pass
 
 
 def sample_discrete_maps(
@@ -183,23 +146,7 @@ def sample_discrete_maps(
     >>> sample_discrete(values, probabilities, 10, seed=0).tolist()
     ['v_1', 'v_2', 'v_1', 'v_1', 'v_1', 'v_1', 'v_1', 'v_2', 'v_2', 'v_1']
     """
-    if seed is not None:
-        np.random.seed(seed)
-
-    # TODO: Remove this conversion and find a way to do this natively in torch.
-    states = np.array(states)
-    weight_indices = compat_fns.to_numpy(weight_indices)
-    index_to_weight = {key: compat_fns.to_numpy(value) for key, value in index_to_weight.items()}
-    size = int(size)
-
-    samples = np.zeros(size, dtype=int)
-    unique_weight_indices, counts = np.unique(weight_indices, return_counts=True)
-
-    for weight_size, weight_index in zip(counts, unique_weight_indices):
-        samples[(weight_indices == weight_index)] = np.random.choice(
-            states, size=weight_size, p=_adjusted_weights(index_to_weight[weight_index])
-        )
-    return samples
+    pass
 
 
 def powerset(l_input: list):
@@ -212,4 +159,4 @@ def powerset(l_input: list):
     >>> list(powerset([1, 2, 3]))
     [(), (1,), (2,), (3,), (1, 2), (1, 3), (2, 3), (1, 2, 3)]
     """
-    return chain.from_iterable(combinations(l_input, r) for r in range(len(l_input) + 1))
+    pass

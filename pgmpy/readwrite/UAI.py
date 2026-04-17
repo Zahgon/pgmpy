@@ -66,31 +66,7 @@ class UAIReader:
         """
         Returns the grammar of the UAI file.
         """
-        network_name = Word(alphas).set_results_name("network_name")
-        no_variables = Word(nums).set_results_name("no_variables")
-        grammar = network_name + no_variables
-        self.no_variables = int(grammar.parse_string(self.network)["no_variables"])
-        domain_variables = (Word(nums) * self.no_variables).set_results_name("domain_variables")
-        grammar += domain_variables
-        no_functions = Word(nums).set_results_name("no_functions")
-        grammar += no_functions
-        self.no_functions = int(grammar.parse_string(self.network)["no_functions"])
-        integer = Word(nums).set_parse_action(lambda t: int(t[0]))
-        for function in range(0, self.no_functions):
-            scope_grammar = Word(nums).set_results_name("fun_scope_" + str(function))
-            grammar += scope_grammar
-            function_scope = grammar.parse_string(self.network)["fun_scope_" + str(function)]
-            function_grammar = ((integer) * int(function_scope)).set_results_name("fun_" + str(function))
-            grammar += function_grammar
-
-        floatnumber = Combine(Word(nums) + Optional(Literal(".") + Optional(Word(nums))))
-        for function in range(0, self.no_functions):
-            no_values_grammar = Word(nums).set_results_name("fun_no_values_" + str(function))
-            grammar += no_values_grammar
-            no_values = grammar.parse_string(self.network)["fun_no_values_" + str(function)]
-            values_grammar = ((floatnumber) * int(no_values)).set_results_name("fun_values_" + str(function))
-            grammar += values_grammar
-        return grammar
+        pass
 
     def get_network_type(self):
         """
@@ -112,8 +88,7 @@ class UAIReader:
         >>> reader.get_network_type()
         'BAYES'
         """
-        network_type = self.grammar.parse_string(self.network)
-        return network_type["network_name"]
+        pass
 
     def get_variables(self):
         """
@@ -137,11 +112,7 @@ class UAIReader:
         >>> reader.get_variables()
         ['var_0', 'var_1', 'var_2', 'var_3', 'var_4', 'var_5', 'var_6', 'var_7']
         """
-        variables = []
-        for var in range(0, self.no_variables):
-            var_name = "var_" + str(var)
-            variables.append(var_name)
-        return variables
+        pass
 
     def get_domain(self):
         """
@@ -164,11 +135,7 @@ class UAIReader:
         {'var_0': '2', 'var_1': '2', 'var_2': '2', 'var_3': '2',
         'var_4': '2', 'var_5': '2', 'var_6': '2', 'var_7': '2'}
         """
-        domain = {}
-        var_domain = self.grammar.parse_string(self.network)["domain_variables"]
-        for var in range(0, len(var_domain)):
-            domain["var_" + str(var)] = var_domain[var]
-        return domain
+        pass
 
     def get_edges(self):
         """
@@ -190,20 +157,7 @@ class UAIReader:
         [('var_0', 'var_6'), ('var_1', 'var_2'), ('var_3', 'var_2'), ('var_3', 'var_7'),
         ('var_4', 'var_3'), ('var_5', 'var_1'), ('var_5', 'var_4'), ('var_6', 'var_3')]
         """
-        edges = []
-        for function in range(0, self.no_functions):
-            function_variables = self.grammar.parse_string(self.network)["fun_" + str(function)]
-            if isinstance(function_variables, int):
-                function_variables = [function_variables]
-            if self.network_type == "BAYES":
-                child_var = "var_" + str(function_variables[-1])
-                function_variables = function_variables[:-1]
-                for var in function_variables:
-                    edges.append(("var_" + str(var), child_var))
-            elif self.network_type == "MARKOV":
-                function_variables = ["var_" + str(var) for var in function_variables]
-                edges.extend(list(combinations(function_variables, 2)))
-        return set(edges)
+        pass
 
     def get_tables(self):
         """
@@ -231,20 +185,7 @@ class UAIReader:
         ('var_6', ['0.05', '0.01', '0.95', '0.99']),
         ('var_7', ['0.98', '0.05', '0.02', '0.95'])]
         """
-        tables = []
-        for function in range(0, self.no_functions):
-            function_variables = self.grammar.parse_string(self.network)["fun_" + str(function)]
-            if isinstance(function_variables, int):
-                function_variables = [function_variables]
-            if self.network_type == "BAYES":
-                child_var = "var_" + str(function_variables[-1])
-                values = self.grammar.parse_string(self.network)["fun_values_" + str(function)]
-                tables.append((child_var, list(values)))
-            elif self.network_type == "MARKOV":
-                function_variables = ["var_" + str(var) for var in function_variables]
-                values = self.grammar.parse_string(self.network)["fun_values_" + str(function)]
-                tables.append((function_variables, list(values)))
-        return tables
+        pass
 
     def get_model(self):
         """
@@ -267,46 +208,7 @@ class UAIReader:
         >>> reader.get_model() # doctest: +ELLIPSIS
         <pgmpy.models.DiscreteBayesianNetwork.DiscreteBayesianNetwork object at 0x...>
         """
-        if self.network_type == "BAYES":
-            model = DiscreteBayesianNetwork()
-            model.add_nodes_from(self.variables)
-            model.add_edges_from(self.edges)
-
-            tabular_cpds = []
-            for child_var, values in self.tables:
-                states = int(self.domain[child_var])
-                values = np.fromiter(values, dtype=float)
-                values = values.reshape(states, values.size // states)
-                parents = list(model.predecessors(child_var))
-                if len(parents) == 0:
-                    tabular_cpds.append(TabularCPD(child_var, states, values))
-                else:
-                    tabular_cpds.append(
-                        TabularCPD(
-                            child_var,
-                            states,
-                            values,
-                            evidence=parents,
-                            evidence_card=[int(self.domain[var]) for var in parents],
-                        )
-                    )
-
-            model.add_cpds(*tabular_cpds)
-            return model
-
-        elif self.network_type == "MARKOV":
-            model = DiscreteMarkovNetwork(self.edges)
-
-            factors = []
-            for table in self.tables:
-                variables = table[0]
-                cardinality = [int(self.domain[var]) for var in variables]
-                value = list(map(float, table[1]))
-                factor = DiscreteFactor(variables=variables, cardinality=cardinality, values=value)
-                factors.append(factor)
-
-            model.add_factors(*factors)
-            return model
+        pass
 
 
 class UAIWriter:
@@ -375,8 +277,7 @@ class UAIWriter:
         >>> writer.get_nodes()
         '8'
         """
-        no_nodes = len(self.model.nodes())
-        return str(no_nodes)
+        pass
 
     def get_domain(self):
         """
@@ -391,24 +292,7 @@ class UAIWriter:
         >>> writer.get_domain()
         {'asia': '2', 'bronc': '2', 'dysp': '2', 'either': '2', 'lung': '2', 'smoke': '2', 'tub': '2', 'xray': '2'}
         """
-        if isinstance(self.model, DiscreteBayesianNetwork):
-            cpds = self.model.get_cpds()
-            cpds.sort(key=lambda x: x.variable)
-            domain = {}
-            for cpd in cpds:
-                domain[cpd.variable] = str(cpd.variable_card)
-            return domain
-        elif isinstance(self.model, DiscreteMarkovNetwork):
-            factors = self.model.get_factors()
-            domain = {}
-            for factor in factors:
-                variables = factor.variables
-                for var in variables:
-                    if var not in domain:
-                        domain[var] = str(factor.get_cardinality([var])[var])
-            return domain
-        else:
-            raise TypeError("Model must be an instance of Markov or Bayesian model.")
+        pass
 
     def get_functions(self):
         """
@@ -424,29 +308,7 @@ class UAIWriter:
         [['0'], ['5', '1'], ['3', '1', '2'], ['6', '4', '3'],
         ['5', '4'], ['5'], ['0', '6'], ['3', '7']]
         """
-        if isinstance(self.model, DiscreteBayesianNetwork):
-            cpds = self.model.get_cpds()
-            cpds.sort(key=lambda x: x.variable)
-            variables = sorted(self.domain.items(), key=lambda x: (x[1], x[0]))
-            functions = []
-            for cpd in cpds:
-                child_var = cpd.variable
-                evidence = cpd.variables[:0:-1]
-                function = [str(variables.index((var, self.domain[var]))) for var in evidence]
-                function.append(str(variables.index((child_var, self.domain[child_var]))))
-                functions.append(function)
-            return functions
-        elif isinstance(self.model, DiscreteMarkovNetwork):
-            factors = self.model.get_factors()
-            functions = []
-            variables = sorted(self.domain.items(), key=lambda x: (x[1], x[0]))
-            for factor in factors:
-                scope = factor.scope()
-                function = [str(variables.index((var, self.domain[var]))) for var in scope]
-                functions.append(function)
-            return functions
-        else:
-            raise TypeError("Model must be an instance of Markov or Bayesian model.")
+        pass
 
     def get_tables(self):
         """
@@ -465,33 +327,7 @@ class UAIWriter:
         ['0.1', '0.01', '0.9', '0.99'], ['0.5', '0.5'],
         ['0.05', '0.01', '0.95', '0.99'], ['0.98', '0.05', '0.02', '0.95']]
         """
-        if isinstance(self.model, DiscreteBayesianNetwork):
-            cpds = self.model.get_cpds()
-            cpds.sort(key=lambda x: x.variable)
-            tables = []
-            for cpd in cpds:
-                values = list(
-                    map(
-                        str,
-                        compat_fns.to_numpy(cpd.values.ravel(), decimals=self.round_values),
-                    )
-                )
-                tables.append(values)
-            return tables
-        elif isinstance(self.model, DiscreteMarkovNetwork):
-            factors = self.model.get_factors()
-            tables = []
-            for factor in factors:
-                values = list(
-                    map(
-                        str,
-                        compat_fns.to_numpy(factor.values.ravel(), decimals=self.round_values),
-                    )
-                )
-                tables.append(values)
-            return tables
-        else:
-            raise TypeError("Model must be an instance of Markov or Bayesian model.")
+        pass
 
     def write(self, filename):
         """
@@ -509,12 +345,7 @@ class UAIWriter:
         >>> writer = UAIWriter(model)
         >>> writer.write("asia.uai")
         """
-        writer = self.__str__()
-        with open(filename, "w") as fout:
-            fout.write(writer)
+        pass
 
     def write_uai(self, filename):
-        warnings.warn(
-            "`UAIWriter.write_uai` is deprecated. Please use `UAIWriter.write` instead.", FutureWarning, stacklevel=2
-        )
-        self.write(filename)
+        pass

@@ -100,42 +100,4 @@ class CorrelationScore(_BaseUnsupervisedMetric):
 
     def _evaluate(self, X, causal_graph):
         # Step 1: Validate inputs
-        num_nodes = causal_graph.number_of_nodes()
-        if num_nodes < 2:
-            raise ValueError(
-                "The causal graph must have at least 2 nodes to compute the"
-                f" correlation score. Got {num_nodes} node(s)."
-            )
-
-        if not callable(self.score):
-            raise ValueError(f"score should be scikit-learn classification metric. Got {self.score}")
-
-        ci_test = get_ci_test(test=self.ci_test, data=X)
-
-        # Step 2: Create a dataframe of every 2 combination of variables
-        results = []
-        for i, j in combinations(causal_graph.nodes(), 2):
-            test_result = ci_test(
-                X=i,
-                Y=j,
-                Z=[],
-                significance_level=self.significance_level,
-            )
-            d_connected = not causal_graph.is_dconnected(start=i, end=j)
-
-            results.append(
-                {
-                    "var1": i,
-                    "var2": j,
-                    "stat_test": test_result,
-                    "d_connected": d_connected,
-                }
-            )
-
-        results = pd.DataFrame(results)
-
-        # Step 3: Return summary or metric
-        if self.return_summary:
-            return results
-        else:
-            return self.score(y_true=results["stat_test"].values, y_pred=results["d_connected"].values)
+        pass

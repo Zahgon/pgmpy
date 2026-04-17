@@ -59,6 +59,4 @@ class BICGauss(LogLikelihoodGauss):
         super().__init__(data, state_names=state_names)
 
     def _local_score(self, variable: str, parents: tuple[str, ...]) -> float:
-        ll, df_model = self._log_likelihood(variable=variable, parents=parents)
-
-        return ll - (((df_model + 2) / 2) * np.log(self.data.shape[0]))
+        pass

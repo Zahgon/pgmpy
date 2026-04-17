@@ -17,17 +17,13 @@ class LinearEstimator:
             self.estimator = self._supported_models[estimator_type]
 
     def _model(self, X, Y, Z, data, **kwargs):
-        exog = sm.add_constant(data[[X] + list(Z)])
-        endog = data[Y]
-        return self.estimator(endog=endog, exog=exog, **kwargs)
+        pass
 
     def fit(self, X, Y, Z, data, **kwargs):
-        self.estimator = self._model(X, Y, Z, data, **kwargs).fit()
-        self.ate = self.estimator.params[X]
-        return self
+        pass
 
     def _get_ate(self):
-        return self.ate
+        pass
 
     def summary(self):
-        return self.estimator.summary()
+        pass

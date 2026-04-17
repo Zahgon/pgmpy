@@ -210,46 +210,13 @@ class BIFReader:
         """
         A method that returns variable grammar
         """
-        # Variable name: everything between "variable" and "{", allowing spaces
-        name_expr = Suppress("variable") + pp.Regex(r"[^{]+").set_parse_action(lambda t: t[0].strip()) + Suppress("{")
-        # State names: comma-separated values that may contain spaces
-        state_value = pp.Regex(r"[^,};]+").set_parse_action(lambda t: t[0].strip())
-        # Defining a variable state expression
-        variable_state_expr = (
-            Suppress("type")
-            + Suppress(Word(pp.unicode.alphanums + "_" + "-" + "."))
-            + Suppress("[")
-            + Suppress(Word(nums))
-            + Suppress("]")
-            + Suppress("{")
-            + Group(state_value + ZeroOrMore(Suppress(",") + state_value))
-            + Suppress("}")
-            + Suppress(";")
-        )
-        # variable states is of the form type description [args] { val1, val2 }; (comma may or may not be present)
-
-        property_expr = Suppress("property") + CharsNotIn(";") + Suppress(";")  # Creating an expr to find property
-
-        return name_expr, variable_state_expr, property_expr
+        pass
 
     def get_probability_grammar(self):
         """
         A method that returns probability grammar
         """
-        # Creating valid word expression for probability, it is of the format
-        # wor1 | var2 , var3 or var1 var2 var3 or simply var
-        word_expr = Word(pp.unicode.alphanums + "-" + "_" + ".") + Suppress(Optional("|")) + Suppress(Optional(","))
-        # creating an expression for valid numbers, of the format
-        # 1.00 or 1 or 1.00. 0.00 or 9.8e-5 etc
-        num_expr = Word(nums + "-" + "+" + "e" + "E" + ".") + Suppress(Optional(","))
-        probability_expr = Suppress("probability") + Suppress("(") + OneOrMore(word_expr) + Suppress(")")
-        # State values in CPD rows: comma-separated values that may contain spaces
-        state_value = pp.Regex(r"[^,)]+").set_parse_action(lambda t: t[0].strip())
-        optional_expr = Suppress("(") + state_value + ZeroOrMore(Suppress(",") + state_value) + Suppress(")")
-        probab_attributes = optional_expr | Suppress("table") | Suppress("default")
-        cpd_expr = probab_attributes + OneOrMore(num_expr)
-
-        return probability_expr, cpd_expr
+        pass
 
     def get_model(self, state_name_type=str):
         """
@@ -271,37 +238,7 @@ class BIFReader:
         >>> reader.get_model() # doctest: +ELLIPSIS
         <pgmpy.models.DiscreteBayesianNetwork.DiscreteBayesianNetwork object at 0x...>
         """
-        model = DiscreteBayesianNetwork()
-        model.add_nodes_from(self.variable_names)
-        model.add_edges_from(self.variable_edges)
-        model.name = self.network_name
-
-        tabular_cpds = []
-        for var in sorted(self.variable_cpds.keys()):
-            values = self.variable_cpds[var]
-            sn = {
-                p_var: list(map(state_name_type, self.variable_states[p_var])) for p_var in self.variable_parents[var]
-            }
-            sn[var] = list(map(state_name_type, self.variable_states[var]))
-            cpd = TabularCPD(
-                var,
-                len(self.variable_states[var]),
-                values,
-                evidence=self.variable_parents[var],
-                evidence_card=[len(self.variable_states[evidence_var]) for evidence_var in self.variable_parents[var]],
-                state_names=sn,
-            )
-            tabular_cpds.append(cpd)
-
-        model.add_cpds(*tabular_cpds)
-
-        if self.include_properties:
-            for node, properties in self.variable_properties.items():
-                for prop in properties:
-                    prop_name, prop_value = map(lambda t: t.strip(), prop.split("="))
-                    model.nodes[node][prop_name] = prop_value
-
-        return model
+        pass
 
 
 class BIFWriter:
@@ -344,38 +281,7 @@ class BIFWriter:
         """
         Create template for writing in BIF format
         """
-        network_template = Template("network $name {\n}\n")
-        # property tag may or may not be present in model,and since no of properties
-        # can be more than one, will replace them according to format otherwise null
-        variable_template = Template(
-            """variable $name {
-    type discrete [ $no_of_states ] { $states };
-$properties}\n"""
-        )
-        property_template = Template("    property $prop ;\n")
-        # $variable_ here is name of variable, used underscore for clarity
-        probability_template = Template(
-            """probability ( $variable_$separator_$parents ) {
-    table $values ;
-}\n"""
-        )
-
-        conditional_probability_template_total = Template(
-            """probability ( $variable_$separator_$parents ) {
-$values
-}\n"""
-        )
-
-        conditional_probability_template = Template("""    ( $state ) $values;\n""")
-
-        return (
-            network_template,
-            variable_template,
-            property_template,
-            probability_template,
-            conditional_probability_template_total,
-            conditional_probability_template,
-        )
+        pass
 
     def __str__(self):
         """
@@ -466,8 +372,7 @@ $values
         >>> sorted(writer.get_variables())
         ['asia', 'bronc', 'dysp', 'either', 'lung', 'smoke', 'tub', 'xray']
         """
-        variables = self.model.nodes()
-        return variables
+        pass
 
     def get_states(self):
         """
@@ -489,22 +394,7 @@ $values
         'lung': ['yes', 'no'], 'smoke': ['yes', 'no'],
         'tub': ['yes', 'no'], 'xray': ['yes', 'no']}
         """
-        variable_states = {}
-        cpds = self.model.get_cpds()
-        for cpd in cpds:
-            variable = cpd.variable
-            variable_states[variable] = []
-            for state in cpd.state_names[variable]:
-                state_str = str(state)
-
-                # Warn users if any commas in state names
-                if "," in state_str:
-                    logger.warning(
-                        f"State name '{state_str}' for variable '{variable}' contains commas. "
-                        "This may cause issues when loading the file. Consider removing any special characters."
-                    )
-                variable_states[variable].append(state_str)
-        return variable_states
+        pass
 
     def get_properties(self):
         """
@@ -523,12 +413,7 @@ $values
         >>> writer.get_properties() # doctest: +NORMALIZE_WHITESPACE
         {'asia': [], 'bronc': [], 'dysp': [], 'either': [], 'lung': [], 'smoke': [], 'tub': [], 'xray': []}
         """
-        variables = self.model.nodes()
-        property_tag = {}
-        for variable in sorted(variables):
-            properties = self.model.nodes[variable]
-            property_tag[variable] = [f"{prop} = {val}" for prop, val in sorted(properties.items())]
-        return property_tag
+        pass
 
     def get_parents(self):
         """
@@ -554,11 +439,7 @@ $values
         'tub': ['asia'],
         'xray': ['either']}
         """
-        cpds = self.model.get_cpds()
-        variable_parents = {}
-        for cpd in cpds:
-            variable_parents[cpd.variable] = cpd.variables[1:]
-        return variable_parents
+        pass
 
     def get_cpds(self):
         """
@@ -582,11 +463,7 @@ $values
         'tub': array([0.05, 0.01, 0.95, 0.99]),
         'xray': array([0.98, 0.05, 0.02, 0.95])}
         """
-        cpds = self.model.get_cpds()
-        tables = {}
-        for cpd in cpds:
-            tables[cpd.variable] = compat_fns.to_numpy(cpd.values.ravel(), decimals=self.round_values)
-        return tables
+        pass
 
     def write(self, filename):
         """
@@ -604,12 +481,7 @@ $values
         >>> writer = BIFWriter(asia)
         >>> writer.write(filename="asia.bif")
         """
-        writer = self.__str__()
-        with open(filename, "w") as fout:
-            fout.write(writer)
+        pass
 
     def write_bif(self, filename):
-        warnings.warn(
-            "`BIFWriter.write_bif` is deprecated. Please use `BIFWriter.write` instead.", FutureWarning, stacklevel=2
-        )
-        self.write(filename)
+        pass

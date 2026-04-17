@@ -94,48 +94,4 @@ class AdjacencyConfusionMatrix(_BaseSupervisedMetric):
 
     def _evaluate(self, true_causal_graph, est_causal_graph):
         """Evaluate adjacency confusion matrix metrics."""
-        # Step 1: Get adjacency matrices for both graphs
-        nodes_list = sorted(true_causal_graph.nodes())
-        true_adj = nx.adjacency_matrix(true_causal_graph, nodelist=nodes_list, weight=None).todense()
-        est_adj = nx.adjacency_matrix(est_causal_graph, nodelist=nodes_list, weight=None).todense()
-
-        true_skel = (true_adj + true_adj.T) > 0
-        est_skel = (est_adj + est_adj.T) > 0
-
-        mask = np.triu(np.ones_like(true_skel, dtype=bool), k=1)
-        true_edges = np.asarray(true_skel[mask]).flatten()
-        est_edges = np.asarray(est_skel[mask]).flatten()
-
-        # Step 2: Compute confusion matrix components
-        tp = int(np.sum(true_edges & est_edges))
-        fp = int(np.sum(~true_edges & est_edges))
-        fn = int(np.sum(true_edges & ~est_edges))
-        tn = int(np.sum(~true_edges & ~est_edges))
-
-        # Step 3: Compute specified metrics
-        results = {}
-        if "cm" in self.metrics:
-            results["cm"] = pd.DataFrame(
-                [[tp, fn], [fp, tn]],
-                index=pd.Index(["Actual Present", "Actual Absent"], name="Actual"),
-                columns=pd.Index(["Est Present", "Est Absent"], name="Estimated"),
-            )
-
-        if "precision" in self.metrics:
-            results["precision"] = tp / (tp + fp) if (tp + fp) > 0 else 0.0
-
-        if "recall" in self.metrics:
-            results["recall"] = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-
-        if "f1" in self.metrics:
-            prec = tp / (tp + fp) if (tp + fp) > 0 else 0.0
-            rec = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-            results["f1"] = 2 * prec * rec / (prec + rec) if (prec + rec) > 0 else 0.0
-
-        if "npv" in self.metrics:
-            results["npv"] = tn / (tn + fn) if (tn + fn) > 0 else 0.0
-
-        if "specificity" in self.metrics:
-            results["specificity"] = tn / (tn + fp) if (tn + fp) > 0 else 0.0
-
-        return results
+        pass

@@ -38,12 +38,10 @@ class ScoreCache(StructureScore):
         super().__init__(data, **kwargs)
 
     def local_score(self, variable, parents):
-        hashable = tuple(parents)
-        return self.cache(variable, hashable)
+        pass
 
     def _wrapped_original(self, variable, parents):
-        expected = list(parents)
-        return self.base_scorer.local_score(variable, expected)
+        pass
 
 
 # link fields

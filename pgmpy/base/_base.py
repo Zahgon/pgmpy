@@ -212,14 +212,7 @@ class _CoreGraph(nx.MultiGraph, _GraphRolesMixin):
         [('A', 'B', 0, '->')]
 
         """
-        if isinstance(edge_type, str):
-            self._validate_edges(ebunch=[(u, v, edge_type)])
-            _markers_dict = self._from_api_edge_type(edge=[u, v, edge_type])
-        else:
-            _markers_dict = edge_type
-
-        _key = super().add_edge(u, v, key=key, **kwargs)
-        self.edges[u, v, _key].update({u: _markers_dict[u], v: _markers_dict[v]})
+        pass
 
     def add_edges_from(
         self,
@@ -261,14 +254,7 @@ class _CoreGraph(nx.MultiGraph, _GraphRolesMixin):
         [('A', 'B', 0, '->'), ('B', 'C', 0, '->')]
 
         """
-        self._validate_edges(ebunch=ebunch)
-        for edge in ebunch:
-            if len(edge) == 3:
-                u, v, edge_type = edge
-                self.add_edge(u, v, edge_type=edge_type, **kwargs)
-            elif len(edge) == 4:
-                u, v, key, edge_type = edge
-                self.add_edge(u, v, edge_type=edge_type, key=key, **kwargs)
+        pass
 
     def remove_edge(
         self,
@@ -315,26 +301,7 @@ class _CoreGraph(nx.MultiGraph, _GraphRolesMixin):
         [('B', 'C', 0, '->'), ('C', 'D', 0, '--')]
 
         """
-        if isinstance(edge_type, str):
-            self._validate_edges(ebunch=[(u, v, edge_type)])
-            _markers_dict = self._from_api_edge_type(edge=[u, v, edge_type])
-        else:
-            _markers_dict = edge_type
-
-        keys_to_remove = []
-        edges = self.get_edge_data(u, v)
-        if edge_type is None:
-            keys_to_remove = list(edges.keys())
-        else:
-            for key, data in edges.items():
-                if data[u] == _markers_dict[u] and data[v] == _markers_dict[v]:
-                    keys_to_remove.append(key)
-
-        if len(keys_to_remove) == 0:
-            raise ValueError(f"Edge ({u}, {v}, {edge_type}) not in graph.")
-        else:
-            for key in keys_to_remove:
-                super().remove_edge(u, v, key=key)
+        pass
 
     def remove_edges_from(
         self,
@@ -371,9 +338,7 @@ class _CoreGraph(nx.MultiGraph, _GraphRolesMixin):
         [('A', 'B', 0, '->')]
 
         """
-        self._validate_edges(ebunch=ebunch)
-        for u, v, edge_type in ebunch:
-            self.remove_edge(u, v, edge_type)
+        pass
 
     def copy(self):
         """
@@ -401,16 +366,7 @@ class _CoreGraph(nx.MultiGraph, _GraphRolesMixin):
         <class 'pgmpy.base._base._CoreGraph'>
 
         """
-        ebunch = [(u, v, key, edge_type) for u, v, key, edge_type in self.edges(keys=True, data=True)]
-
-        graph_copy = self.__class__()
-        graph_copy.add_nodes_from(self.nodes(data=True))
-        for u, v, key, edge_type in ebunch:
-            graph_copy.add_edge(u, v, edge_type=edge_type, key=key)
-        for role, vars in self.get_role_dict().items():
-            graph_copy.with_role(role=role, variables=vars, inplace=True)
-
-        return graph_copy
+        pass
 
     def get_neighbors(self, node: Hashable, edge_type: str | None = None) -> set[Hashable]:
         """
@@ -454,31 +410,7 @@ class _CoreGraph(nx.MultiGraph, _GraphRolesMixin):
         ['A']
 
         """
-        # Check node's value
-        if node is None:
-            raise ValueError("Node cannot be None.")
-        if node not in self.nodes():
-            raise ValueError(f"Node {node} not in graph.")
-
-        # Check edge_type's value
-        if (edge_type is not None) and (edge_type not in self.SUPPORTED_EDGE_TYPES):
-            raise ValueError(f"Types must be one of {self.SUPPORTED_EDGE_TYPES}.")
-
-        neighboring_nodes = self.neighbors(node)
-
-        if edge_type is None:
-            return set(neighboring_nodes)
-
-        filtered_neighbors = set()
-        for neighbor in neighboring_nodes:
-            edge_data = self.get_edge_data(node, neighbor)
-            _markers_dict = self._from_api_edge_type(edge=[node, neighbor, edge_type])
-            for _, data in edge_data.items():
-                if data[node] == _markers_dict[node] and data[neighbor] == _markers_dict[neighbor]:
-                    filtered_neighbors.add(neighbor)
-                    break
-
-        return filtered_neighbors
+        pass
 
     def get_parents(self, node: Hashable) -> set[Hashable]:
         """
@@ -519,7 +451,7 @@ class _CoreGraph(nx.MultiGraph, _GraphRolesMixin):
         ['B']
 
         """
-        return self.get_neighbors(node=node, edge_type="<-")
+        pass
 
     def get_children(self, node: Hashable) -> set[Hashable]:
         """
@@ -560,7 +492,7 @@ class _CoreGraph(nx.MultiGraph, _GraphRolesMixin):
         ['C']
 
         """
-        return self.get_neighbors(node=node, edge_type="->")
+        pass
 
     def get_spouses(self, node: Hashable) -> set[Hashable]:
         """
@@ -601,7 +533,7 @@ class _CoreGraph(nx.MultiGraph, _GraphRolesMixin):
         ['B']
 
         """
-        return self.get_neighbors(node=node, edge_type="<>")
+        pass
 
     def get_ancestors(self, node: Hashable) -> set[Hashable]:
         """
@@ -642,18 +574,7 @@ class _CoreGraph(nx.MultiGraph, _GraphRolesMixin):
         ['A', 'B']
 
         """
-        if node not in self.nodes():
-            raise ValueError(f"Node {node} not in graph.")
-
-        ancestors = set()
-        queue = deque([node])
-
-        while queue:
-            current = queue.popleft()
-            if current not in ancestors:
-                ancestors.add(current)
-                queue.extend(self.get_parents(current))
-        return ancestors
+        pass
 
     def get_descendants(self, node: Hashable) -> set[Hashable]:
         """
@@ -694,18 +615,7 @@ class _CoreGraph(nx.MultiGraph, _GraphRolesMixin):
         ['B', 'C']
 
         """
-        if node not in self.nodes():
-            raise ValueError(f"Node {node} not in graph.")
-
-        descendants = set()
-        queue = deque([node])
-
-        while queue:
-            current = queue.popleft()
-            if current not in descendants:
-                descendants.add(current)
-                queue.extend(self.get_children(current))
-        return descendants
+        pass
 
     def get_reachable_nodes(self, node: Hashable, edge_type: str | None = None) -> set[Hashable]:
         """
@@ -756,18 +666,7 @@ class _CoreGraph(nx.MultiGraph, _GraphRolesMixin):
         ['D', 'F']
 
         """
-        if node not in self.nodes():
-            raise ValueError(f"Node {node} not in graph.")
-
-        reachable = set()
-        queue = deque([node])
-
-        while queue:
-            current = queue.popleft()
-            if current not in reachable:
-                reachable.add(current)
-                queue.extend(self.get_neighbors(current, edge_type=edge_type))
-        return reachable
+        pass
 
     def get_edges(self, keys: bool = False, data: bool = False) -> list[tuple[Any, ...]]:
         """
@@ -800,14 +699,7 @@ class _CoreGraph(nx.MultiGraph, _GraphRolesMixin):
         [('A', 'B', 0, '->'), ('A', 'B', 1, '<>'), ('B', 'C', 0, '->')]
 
         """
-        networkx_ebunch = super().edges(keys=keys, data=data)
-
-        # (u, v) or (u, v, key)
-        if data is False:
-            return list(networkx_ebunch)
-
-        # (u, v, edge_type) or (u, v, key, edge_type)
-        return [(*edge[:-1], self._to_api_edge_type(edge[0], edge[1], edge[-1])) for edge in networkx_ebunch]
+        pass
 
     def get_edge_type(self) -> set:
         """
@@ -818,7 +710,7 @@ class _CoreGraph(nx.MultiGraph, _GraphRolesMixin):
         set
 
         """
-        return self.SUPPORTED_EDGE_TYPES
+        pass
 
     # ----------------------------------------------------------------------
     # Internal Methods (or Private Methods)
@@ -878,25 +770,7 @@ class _CoreGraph(nx.MultiGraph, _GraphRolesMixin):
             `remove_edge()`,
             `remove_edges_from()`.
         """
-        if not ebunch:
-            return
-        supported_types = self.SUPPORTED_EDGE_TYPES
-
-        for edge in ebunch:
-            if len(edge) == 3:
-                u, v, edge_type = edge
-            elif len(edge) == 4:
-                u, v, _, edge_type = edge
-            else:
-                raise ValueError(f"Edge tuple must have 3 or 4 elements. Got {len(edge)}.")
-
-            if (u is None) or (v is None):
-                raise ValueError("Nodes cannot be None.")
-            if u == v:
-                raise ValueError("Nodes cannot be the same for an edge.")
-
-            if edge_type is None or edge_type not in supported_types:
-                raise ValueError(f"Types must be one of {supported_types}.")
+        pass
 
     def _from_api_edge_type(
         self,
@@ -905,17 +779,7 @@ class _CoreGraph(nx.MultiGraph, _GraphRolesMixin):
         """
         The `_from_api_edge_type` method converts the user's `edge_type` input into an internal representation.
         """
-        u, v, edge_type = edge
-        if edge_type == "<-":
-            return {v: "-", u: ">"}
-        elif edge_type == "o-":
-            return {v: "-", u: "o"}
-        elif edge_type == "<o":
-            return {v: "o", u: ">"}
-        elif edge_type == "<>":
-            return {u: ">", v: ">"}
-        else:
-            return {u: edge_type[0], v: edge_type[1]}
+        pass
 
     def _to_api_edge_type(
         self,
@@ -926,13 +790,4 @@ class _CoreGraph(nx.MultiGraph, _GraphRolesMixin):
         """
         The `_to_api_edge_type` method converts the internal representation into the user's `edge_type` input.
         """
-        u_marker = markers[u]
-        v_marker = markers[v]
-
-        marker_map = {
-            (">", "-"): "<-",
-            ("o", "-"): "o-",
-            (">", "o"): "<o",
-            (">", ">"): "<>",
-        }
-        return marker_map.get((u_marker, v_marker), f"{u_marker}{v_marker}")
+        pass

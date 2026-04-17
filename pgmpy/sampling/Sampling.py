@@ -86,52 +86,7 @@ class BayesianModelSampling(BayesianModelInference):
         rec.array([(0, 0, 1), (1, 0, 2)], dtype=
                   [('diff', '<i8'), ('intel', '<i8'), ('grade', '<i8')])
         """
-        sampled = pd.DataFrame(columns=list(self.model.nodes()))
-
-        if show_progress and config.SHOW_PROGRESS:
-            pbar = tqdm(self.topological_order)
-        else:
-            pbar = self.topological_order
-
-        if seed is not None:
-            np.random.seed(seed)
-
-        for node in pbar:
-            if show_progress and config.SHOW_PROGRESS:
-                pbar.set_description(f"Generating for node: {node}")
-            # If values specified in partial_samples, use them. Else generate the values.
-            if (partial_samples is not None) and (node in partial_samples.columns):
-                sampled[node] = partial_samples.loc[:, node].values
-            else:
-                cpd = self.model.get_cpds(node)
-                states = range(self.cardinality[node])
-                evidence = cpd.variables[1:]
-                if evidence:
-                    evidence_values = np.vstack([sampled[i] for i in evidence])
-                    unique, inverse = np.unique(evidence_values.T, axis=0, return_inverse=True)
-                    unique = [tuple(u) for u in unique]
-                    state_to_index, index_to_weight = self.pre_compute_reduce_maps(
-                        variable=node, evidence=evidence, state_combinations=unique
-                    )
-                    if config.get_backend() == "numpy":
-                        weight_index = np.array([state_to_index[u] for u in unique])[inverse]
-                    else:
-                        import torch
-
-                        weight_index = torch.Tensor([state_to_index[u] for u in unique])[inverse]
-                    sampled[node] = sample_discrete_maps(states, weight_index, index_to_weight, size)
-                else:
-                    weights = cpd.values
-                    sampled[node] = sample_discrete(states, weights, size)
-
-        samples_df = _return_samples(
-            sampled,
-            self.state_names_map,
-            partial_samples.columns.tolist() if partial_samples is not None else [],
-        )
-        if not include_latents and any(latent in samples_df.columns for latent in self.model.latents):
-            samples_df.drop(self.model.latents, axis=1, inplace=True)
-        return samples_df
+        pass
 
     def rejection_sample(
         self,
@@ -198,59 +153,7 @@ class BayesianModelSampling(BayesianModelInference):
         0         0          0          1
         1         0          0          1
         """
-
-        if seed is not None:
-            np.random.seed(seed)
-
-        # If no evidence is given, it is equivalent to forward sampling.
-        if len(evidence) == 0:
-            return self.forward_sample(size=size, include_latents=include_latents)
-
-        # Setup array to be returned
-        sampled = pd.DataFrame()
-        prob = 1
-        i = 0
-
-        # Do the sampling by generating samples from forward sampling and rejecting the
-        # samples which do not match our evidence. Keep doing until we have enough
-        # samples.
-        if show_progress and config.SHOW_PROGRESS:
-            pbar = tqdm(total=size)
-
-        while i < size:
-            _size = int(((size - i) / prob) * 1.5)
-
-            # If partial_samples is specified, can only generate < partial_samples.shape[0] number of samples
-            # at a time. For simplicity, just generate the same size as partial_samples.shape[0].
-            if partial_samples is not None:
-                _size = partial_samples.shape[0]
-
-            _sampled = self.forward_sample(
-                size=_size,
-                include_latents=True,
-                show_progress=False,
-                partial_samples=partial_samples,
-            )
-
-            for var, state in evidence:
-                _sampled = _sampled[_sampled[var] == state]
-
-            prob = max(len(_sampled) / _size, 0.01)
-            sampled = pd.concat([sampled, _sampled], axis=0, join="outer").iloc[:size, :]
-            i += _sampled.shape[0]
-
-            if show_progress and config.SHOW_PROGRESS:
-                # Update at maximum to `size`
-                comp = _sampled.shape[0] if i < size else size - (i - _sampled.shape[0])
-                pbar.update(comp)
-
-        if show_progress and config.SHOW_PROGRESS:
-            pbar.close()
-
-        sampled = sampled.reset_index(drop=True)
-        if not include_latents:
-            sampled.drop(self.model.latents, axis=1, inplace=True)
-        return sampled
+        pass
 
     def likelihood_weighted_sample(
         self,
@@ -317,68 +220,7 @@ class BayesianModelSampling(BayesianModelInference):
         rec.array([(0, 0, 1, 0.6), (0, 0, 2, 0.6)], dtype=
                   [('diff', '<i8'), ('intel', '<i8'), ('grade', '<i8'), ('_weight', '<f8')])
         """
-        if seed is not None:
-            np.random.seed(seed)
-
-        # Convert evidence state names to number
-        evidence = [(var, self.model.get_cpds(var).get_state_no(var, state)) for var, state in evidence]
-
-        # Prepare the return dataframe
-        sampled = pd.DataFrame(columns=list(self.model.nodes()))
-        sampled["_weight"] = np.ones(size)
-        evidence_dict = dict(evidence)
-
-        if show_progress and config.SHOW_PROGRESS:
-            pbar = tqdm(self.topological_order)
-        else:
-            pbar = self.topological_order
-
-        # Do the sampling
-        for node in pbar:
-            if show_progress and config.SHOW_PROGRESS:
-                pbar.set_description(f"Generating for node: {node}")
-
-            cpd = self.model.get_cpds(node)
-            states = range(self.cardinality[node])
-            evidence = cpd.get_evidence()
-
-            if evidence:
-                evidence_values = np.vstack([sampled[i] for i in evidence])
-
-                unique, inverse = np.unique(evidence_values.T, axis=0, return_inverse=True)
-                unique = [tuple(u) for u in unique]
-                state_to_index, index_to_weight = self.pre_compute_reduce_maps(
-                    variable=node, evidence=evidence, state_combinations=unique
-                )
-                weight_index = np.array([state_to_index[tuple(u)] for u in unique])[inverse]
-
-                if node in evidence_dict:
-                    evidence_value = evidence_dict[node]
-                    sampled[node] = evidence_value
-                    sampled.loc[:, "_weight"] *= np.array(
-                        list(
-                            map(
-                                lambda i: index_to_weight[weight_index[i]][evidence_value],
-                                range(size),
-                            )
-                        )
-                    )
-                else:
-                    sampled[node] = sample_discrete_maps(states, weight_index, index_to_weight, size)
-            else:
-                if node in evidence_dict:
-                    sampled[node] = evidence_dict[node]
-                    sampled.loc[:, "_weight"] *= np.array(
-                        list(map(lambda _: cpd.values[evidence_dict[node]], range(size)))
-                    )
-                else:
-                    sampled[node] = sample_discrete(states, cpd.values, size)
-
-        # Postprocess the samples: Change state numbers to names, remove latents.
-        samples_df = _return_samples(sampled, self.state_names_map)
-        if not include_latents:
-            samples_df.drop(self.model.latents, axis=1, inplace=True)
-        return samples_df
+        pass
 
 
 class GibbsSampling(MarkovChain):
@@ -431,22 +273,7 @@ class GibbsSampling(MarkovChain):
         model: DiscreteBayesianNetwork
             The model from which probabilities will be computed.
         """
-        self.variables = np.array(model.nodes())
-        self.latents = model.latents
-        self.cardinalities = {var: model.get_cpds(var).variable_card for var in self.variables}
-
-        for var in self.variables:
-            other_vars = [v for v in self.variables if var != v]
-            other_cards = [self.cardinalities[v] for v in other_vars]
-            kernel = {}
-            factors = [cpd.to_factor() for cpd in model.cpds if var in cpd.scope()]
-            factor = factor_product(*factors)
-            scope = set(factor.scope())
-            for tup in itertools.product(*[range(card) for card in other_cards]):
-                states = [State(v, s) for v, s in zip(other_vars, tup) if v in scope]
-                reduced_factor = factor.reduce(states, inplace=False)
-                kernel[tup] = reduced_factor.values / sum(reduced_factor.values)
-            self.transition_models[var] = kernel
+        pass
 
     def _get_kernel_from_markov_model(self, model):
         """
@@ -459,30 +286,7 @@ class GibbsSampling(MarkovChain):
         model: DiscreteMarkovNetwork
             The model from which probabilities will be computed.
         """
-        self.variables = np.array(model.nodes())
-        self.latents = model.latents
-        factors_dict = {var: [] for var in self.variables}
-        for factor in model.get_factors():
-            for var in factor.scope():
-                factors_dict[var].append(factor)
-
-        # Take factor product
-        factors_dict = {
-            var: factor_product(*factors) if len(factors) > 1 else factors[0] for var, factors in factors_dict.items()
-        }
-        self.cardinalities = {var: factors_dict[var].get_cardinality([var])[var] for var in self.variables}
-
-        for var in self.variables:
-            other_vars = [v for v in self.variables if var != v]
-            other_cards = [self.cardinalities[v] for v in other_vars]
-            kernel = {}
-            factor = factors_dict[var]
-            scope = set(factor.scope())
-            for tup in itertools.product(*[range(card) for card in other_cards]):
-                states = [State(first_var, s) for first_var, s in zip(other_vars, tup) if first_var in scope]
-                reduced_factor = factor.reduce(states, inplace=False)
-                kernel[tup] = reduced_factor.values / sum(reduced_factor.values)
-            self.transition_models[var] = kernel
+        pass
 
     def sample(self, start_state=None, size=1, seed=None, include_latents=False):
         """
@@ -524,31 +328,7 @@ class GibbsSampling(MarkovChain):
         2  1  1  0
         3  1  1  1
         """
-        if start_state is None and self.state is None:
-            self.state = self.random_state()
-        elif start_state is not None:
-            self.set_start_state(start_state)
-
-        if seed is not None:
-            np.random.seed(seed)
-
-        types = [(str(var_name), "int") for var_name in self.variables]
-        sampled = np.zeros(size, dtype=types).view(np.recarray)
-        sampled[0] = tuple(st for var, st in self.state)
-        for i in tqdm(range(size - 1)):
-            for j, (var, st) in enumerate(self.state):
-                other_st = tuple(st for v, st in self.state if var != v)
-                next_st = sample_discrete(
-                    list(range(self.cardinalities[var])),
-                    self.transition_models[var][other_st],
-                )[0]
-                self.state[j] = State(var, next_st)
-            sampled[i + 1] = tuple(st for var, st in self.state)
-
-        samples_df = _return_samples(sampled)
-        if not include_latents:
-            samples_df.drop(self.latents, axis=1, inplace=True)
-        return samples_df
+        pass
 
     def generate_sample(self, start_state=None, size=1, include_latents=False, seed=None):
         """
@@ -573,23 +353,4 @@ class GibbsSampling(MarkovChain):
         [[State(var='C', state=1), State(var='B', state=1), State(var='A', state=0)],
          [State(var='C', state=0), State(var='B', state=1), State(var='A', state=1)]]
         """
-        if seed is not None:
-            np.random.seed(seed)
-
-        if start_state is None and self.state is None:
-            self.state = self.random_state()
-        elif start_state is not None:
-            self.set_start_state(start_state)
-
-        for i in range(size):
-            for j, (var, st) in enumerate(self.state):
-                other_st = tuple(st for v, st in self.state if var != v)
-                next_st = sample_discrete(
-                    list(range(self.cardinalities[var])),
-                    self.transition_models[var][other_st],
-                )[0]
-                self.state[j] = State(var, next_st)
-            if include_latents:
-                yield self.state[:]
-            else:
-                yield [s for s in self.state if i not in self.latents]
+        pass

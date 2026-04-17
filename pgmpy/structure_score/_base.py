@@ -46,27 +46,23 @@ class BaseStructureScore(BaseObject):
 
     def local_score(self, variable: str, parents: tuple[str, ...]) -> float:
         """Compute the cached local score for `variable` given `parents`."""
-        return self._cached_local_score(variable, parents)
+        pass
 
     def _local_score(self, variable: str, parents: tuple[str, ...]) -> float:
         """Compute the uncached local score for `variable` given `parents`."""
-        raise NotImplementedError
+        pass
 
     def score(self, model) -> float:
         """Compute a structure score for a model."""
-        score = 0
-        for node in model.nodes():
-            score += self.local_score(node, tuple(model.predecessors(node)))
-        score += self.structure_prior(model)
-        return score
+        pass
 
     def structure_prior(self, model) -> float:
         """Return the log prior over structures."""
-        return 0
+        pass
 
     def structure_prior_ratio(self, operation) -> float:
         """Return the log prior ratio for a structure operation."""
-        return 0
+        pass
 
     def state_counts(
         self,
@@ -76,46 +72,11 @@ class BaseStructureScore(BaseObject):
         reindex: bool = True,
     ) -> pd.DataFrame:
         """Return state counts for `variable`, optionally conditioned on `parents`."""
-        return get_state_counts(
-            data=self.data,
-            state_names=self.state_names,
-            variable=variable,
-            parents=parents,
-            weighted=weighted,
-            reindex=reindex,
-        )
+        pass
 
 
 def get_scoring_method(
     scoring_method: str | BaseStructureScore | None,
     data: pd.DataFrame,
 ) -> BaseStructureScore:
-    if isinstance(scoring_method, BaseStructureScore):
-        return scoring_method
-
-    if scoring_method is None:
-        if data is None:
-            raise ValueError("Cannot determine scoring method: both `scoring_method` and `data` are None.")
-        var_type = get_dataset_type(data)
-        filter_tags = {"default_for": var_type}
-    elif isinstance(scoring_method, str):
-        filter_tags = {"name": scoring_method.lower()}
-    else:
-        raise ValueError(f"Invalid `scoring_method` argument: {scoring_method!r}")
-
-    scores = all_objects(
-        object_types=BaseStructureScore,
-        package_name="pgmpy.structure_score",
-        return_names=False,
-        filter_tags=filter_tags,
-    )
-
-    if scores:
-        cls = scores[0]
-        if data is None:
-            raise ValueError(f"Scoring method '{cls.__name__}' requires data, but data is None.")
-
-        return cls(data=data)
-
-    else:
-        raise ValueError(f"Unknown scoring method: {scoring_method!r}")
+    pass

@@ -116,30 +116,7 @@ class BayesianEstimator(ParameterEstimator):
          <TabularCPD representing P(C:2) at 0x...>,
          <TabularCPD representing P(D:2 | C:2) at 0x...>]
         """
-
-        def _get_node_param(node: Hashable) -> TabularCPD:
-            _equivalent_sample_size = (
-                equivalent_sample_size[node] if isinstance(equivalent_sample_size, dict) else equivalent_sample_size
-            )
-            if isinstance(pseudo_counts, numbers.Real):
-                _pseudo_counts = pseudo_counts
-            else:
-                _pseudo_counts = pseudo_counts[node] if pseudo_counts else None
-
-            cpd = self.estimate_cpd(
-                node,
-                prior_type=prior_type,
-                equivalent_sample_size=_equivalent_sample_size,
-                pseudo_counts=_pseudo_counts,
-                weighted=weighted,
-            )
-            return cpd
-
-        parameters = Parallel(n_jobs=n_jobs)(delayed(_get_node_param)(node) for node in self.model.nodes())
-        # TODO: A hacky solution to return correct value for the chosen backend. Ref #1675
-        parameters = [p.copy() for p in parameters]
-
-        return parameters
+        pass
 
     def estimate_cpd(
         self,
@@ -208,55 +185,4 @@ class BayesianEstimator(ParameterEstimator):
         | C(1) | 0.75 | 0.75 | 0.5  | 0.6666666666666666 |
         +------+------+------+------+--------------------+
         """
-        node_cardinality = len(self.state_names[node])
-        parents = sorted(self.model.get_parents(node))
-        parents_cardinalities = [len(self.state_names[parent]) for parent in parents]
-        cpd_shape = (node_cardinality, np.prod(parents_cardinalities, dtype=int))
-
-        prior_type = prior_type.lower()
-
-        # Throw a warning if pseudo_count is specified without prior_type=dirichlet
-        #     cast to np.array first to use the array.size attribute, which returns 0 also for [[],[]]
-        #     (where len([[],[]]) evaluates to 2)
-        if pseudo_counts is not None and np.array(pseudo_counts).size > 0 and (prior_type != "dirichlet"):
-            logger.warning(
-                f"pseudo count specified with {prior_type} prior. It will be ignored, "
-                "use dirichlet prior for specifying pseudo_counts"
-            )
-
-        if prior_type == "k2":
-            pseudo_counts = np.ones(cpd_shape, dtype=int)
-        elif prior_type == "bdeu":
-            equivalent_sample_size_val = (
-                equivalent_sample_size.get(node, 0)
-                if isinstance(equivalent_sample_size, dict)
-                else equivalent_sample_size
-            )
-            alpha = float(equivalent_sample_size_val) / (node_cardinality * np.prod(parents_cardinalities))
-            pseudo_counts = np.ones(cpd_shape, dtype=float) * alpha
-        elif prior_type == "dirichlet":
-            if isinstance(pseudo_counts, numbers.Real):
-                pseudo_counts = np.ones(cpd_shape, dtype=int) * pseudo_counts
-
-            else:
-                pseudo_counts = np.array(pseudo_counts)
-                if pseudo_counts.shape != cpd_shape:
-                    raise ValueError(
-                        f"The shape of pseudo_counts for the node: {node} must be of shape: {str(cpd_shape)}"
-                    )
-        else:
-            raise ValueError("'prior_type' not specified")
-
-        state_counts = self.state_counts(node, weighted=weighted)
-        bayesian_counts = state_counts + pseudo_counts
-
-        cpd = TabularCPD(
-            node,
-            node_cardinality,
-            np.array(bayesian_counts),
-            evidence=parents,
-            evidence_card=parents_cardinalities,
-            state_names={var: self.state_names[var] for var in chain([node], parents)},
-        )
-        cpd.normalize()
-        return cpd
+        pass

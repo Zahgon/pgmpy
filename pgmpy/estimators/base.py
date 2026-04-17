@@ -95,14 +95,7 @@ class BaseEstimator:
         array([[1., 1., 0., 0.],
                [0., 0., 1., 0.]])
         """
-        return get_state_counts(
-            data=self.data,
-            state_names=self.state_names,
-            variable=variable,
-            parents=parents,
-            weighted=weighted,
-            reindex=reindex,
-        )
+        pass
 
 
 class ParameterEstimator(BaseEstimator):
@@ -191,9 +184,7 @@ class ParameterEstimator(BaseEstimator):
         array([[1., 1., 0., 0.],
                [0., 0., 1., 0.]])
         """
-
-        parents = sorted(self.model.get_parents(variable))
-        return super().state_counts(variable, parents=parents, weighted=weighted, **kwargs)
+        pass
 
 
 class StructureEstimator(BaseEstimator):
@@ -267,19 +258,7 @@ class MarginalEstimator(BaseEstimator):
         clique_to_marginal: A mapping from clique to a list of marginals
         such that each clique is a super set of the marginals it is associated with.
         """
-        clique_to_marginal = defaultdict(lambda: [])
-        for marginal_clique, marginal in marginals.items():
-            for clique in clique_nodes:
-                if set(marginal_clique) <= set(clique):
-                    clique_to_marginal[clique].append(marginal)
-                    break
-            else:
-                raise ValueError(
-                    "Could not find a corresponding clique for"
-                    + f" marginal: {marginal_clique}"
-                    + f" out of cliques: {clique_nodes}"
-                )
-        return clique_to_marginal
+        pass
 
     def _marginal_loss(self, marginals, clique_to_marginal, metric):
         """
@@ -303,52 +282,7 @@ class MarginalEstimator(BaseEstimator):
         Loss and gradient of the loss: Tuple[float, pgmpy.factors.FactorDict.FactorDict]
             Marginal loss and the gradients of the loss with respect to the estimated beliefs.
         """
-        loss = 0.0
-        gradient = FactorDict({})
-
-        for clique, mu in marginals.items():
-            # Initialize a gradient for this clique as zero.
-            gradient[clique] = mu.identity_factor() * 0
-
-            # Iterate over all marginals involving this clique.
-            for y in clique_to_marginal[clique]:
-                # Step 1: Marginalize the clique to the size of `y`.
-                projection_variables = list(set(mu.scope()) - set(y.scope()))
-                mu2 = mu.marginalize(
-                    variables=projection_variables,
-                    inplace=False,
-                )
-
-                if not isinstance(mu2, DiscreteFactor):
-                    raise TypeError(f"Expecting a DiscreteFactor but found {type(mu2)}")
-
-                # Step 2: Compute the difference between the `mu2` and `y`.
-                diff_factor = mu2 + (y * -1)
-
-                if not diff_factor:
-                    raise ValueError("An error occured when calculating the gradient.")
-
-                diff = diff_factor.values.flatten()
-
-                # Step 3: Compute the loss and gradient based upon the metric.
-                if metric == "L1":
-                    loss += abs(diff).sum()
-                    grad = diff.sign() if hasattr(diff, "sign") else np.sign(diff)
-                elif metric == "L2":
-                    loss += 0.5 * (diff @ diff)
-                    grad = diff
-                else:
-                    raise ValueError("Metric must be one of L1 or L2.")
-
-                # Step 4: Update the gradient from this marginal.
-                gradient[clique] += DiscreteFactor(
-                    variables=mu2.scope(),
-                    cardinality=mu2.cardinality,
-                    values=grad,
-                    state_names=mu2.state_names,
-                )
-
-        return loss, gradient
+        pass
 
     def estimate(self):
         pass

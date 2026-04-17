@@ -75,13 +75,7 @@ class SEMEstimator:
         """
         Computes the implied covariance matrix from the given parameters.
         """
-        import torch
-
-        B_masked = torch.mul(B, self.B_mask) + self.B_fixed_mask
-        B_inv = pinverse(self.B_eye - B_masked)
-        zeta_masked = torch.mul(zeta, self.zeta_mask) + self.zeta_fixed_mask
-
-        return self.wedge_y @ B_inv @ zeta_masked @ B_inv.t() @ self.wedge_y.t()
+        pass
 
     def ml_loss(self, params, loss_args):
         r"""
@@ -105,10 +99,7 @@ class SEMEstimator:
         -------
         torch.tensor: The loss value for the given params and loss_args
         """
-        S = loss_args["S"]
-        sigma = self._get_implied_cov(params["B"], params["zeta"])
-
-        return sigma.det().clamp(min=1e-4).log() + (S @ pinverse(sigma)).trace() - S.logdet() - len(self.model.y)
+        pass
 
     def uls_loss(self, params, loss_args):
         r"""
@@ -132,9 +123,7 @@ class SEMEstimator:
         -------
         torch.tensor: The loss value for the given params and loss_args
         """
-        S = loss_args["S"]
-        sigma = self._get_implied_cov(params["B"], params["zeta"])
-        return (S - sigma).pow(2).trace()
+        pass
 
     def gls_loss(self, params, loss_args):
         r"""
@@ -158,10 +147,7 @@ class SEMEstimator:
         -------
         torch.tensor: The loss value for the given params and loss_args
         """
-        S = loss_args["S"]
-        W_inv = pinverse(loss_args["W"])
-        sigma = self._get_implied_cov(params["B"], params["zeta"])
-        return ((S - sigma) @ W_inv).pow(2).trace()
+        pass
 
     def get_init_values(self, data, method):
         """
@@ -173,40 +159,7 @@ class SEMEstimator:
                 New York, NY: John Wiley & Sons.
 
         """
-        # Initialize all the values even if the edge doesn't exist, masks would take care of that.
-        a = 0.4
-        scaling_vars = self.model.to_SEMGraph().get_scaling_indicators()
-        eta, m = self.model.eta, len(self.model.eta)
-
-        if method == "random":
-            B = np.random.rand(m, m)
-            zeta = np.random.rand(m, m)
-
-        elif method == "std":
-            # Add observed vars to `scaling_vars to point to itself. Trick to keep code short.
-            for observed_var in self.model.y:
-                scaling_vars[observed_var] = observed_var
-
-            B = np.random.rand(m, m)
-            for i in range(m):
-                for j in range(m):
-                    if scaling_vars[eta[i]] == eta[j]:
-                        B[i, j] = 1.0
-                    elif i != j:
-                        B[i, j] = a * (
-                            data.loc[:, scaling_vars[eta[i]]].std() / data.loc[:, scaling_vars[eta[j]]].std()
-                        )
-            zeta = np.random.rand(m, m)
-            for i in range(m):
-                zeta[i, i] = a * ((data.loc[:, scaling_vars[eta[i]]].std()) ** 2)
-            for i in range(m):
-                for j in range(m):
-                    zeta[i, j] = zeta[j, i] = a * np.sqrt(zeta[i, i] * zeta[j, j])
-
-        elif method.lower() == "iv":
-            raise NotImplementedError("IV initialization not supported yet.")
-
-        return B, zeta
+        pass
 
     def fit(
         self,
@@ -253,120 +206,7 @@ class SEMEstimator:
         ----------
         .. [1] Bollen, K. A. (2010). Structural equations with latent variables. New York: Wiley.
         """
-        # Check if given arguments are valid
-        if not isinstance(data, pd.DataFrame):
-            raise ValueError(f"data must be a pandas DataFrame. Got type: {type(data)}")
-
-        if not sorted(data.columns) == sorted(self.model.y):
-            raise ValueError(
-                f"The column names data do not match the variables in the model. "
-                f"Expected: {sorted(self.model.observed)}. Got: {sorted(data.columns)}"
-            )
-
-        # Initialize the values of parameters as tensors.
-        backend = compat_fns.get_compute_backend()
-
-        import torch
-
-        if isinstance(init_values, dict):
-            B_init, zeta_init = init_values["B"], init_values["zeta"]
-        else:
-            B_init, zeta_init = self.get_init_values(data, method=init_values.lower())
-        B = torch.tensor(B_init, device=config.DEVICE, dtype=config.DTYPE, requires_grad=True)
-        zeta = torch.tensor(zeta_init, device=config.DEVICE, dtype=config.DTYPE, requires_grad=True)
-
-        # Compute the covariance of the data
-        variable_order = self.model.y
-        S = data.cov().reindex(variable_order, axis=1).reindex(variable_order, axis=0)
-        S = torch.tensor(S.values, device=config.DEVICE, dtype=config.DTYPE, requires_grad=False)
-
-        # Optimize the parameters
-        if method.lower() == "ml":
-            params = optimize(
-                self.ml_loss,
-                params={"B": B, "zeta": zeta},
-                loss_args={"S": S},
-                opt=opt,
-                exit_delta=exit_delta,
-                max_iter=max_iter,
-            )
-
-        elif method.lower() == "uls":
-            params = optimize(
-                self.uls_loss,
-                params={"B": B, "zeta": zeta},
-                loss_args={"S": S},
-                opt=opt,
-                exit_delta=exit_delta,
-                max_iter=max_iter,
-            )
-
-        elif method.lower() == "gls":
-            W = torch.tensor(
-                kwargs["W"],
-                device=config.DEVICE,
-                dtype=config.DTYPE,
-                requires_grad=False,
-            )
-            params = optimize(
-                self.gls_loss,
-                params={"B": B, "zeta": zeta},
-                loss_args={"S": S, "W": W},
-                opt=opt,
-                exit_delta=exit_delta,
-                max_iter=max_iter,
-            )
-
-        elif method.lower() == "2sls" or method.lower() == "2-sls":
-            raise NotImplementedError("2-SLS is not implemented yet")
-
-        B = params["B"] * self.B_mask + self.B_fixed_mask
-        zeta = params["zeta"] * self.zeta_mask + self.zeta_fixed_mask
-
-        # Compute goodness of fit statistics.
-        N = data.shape[0]
-        sample_cov = S
-        sigma_hat = self._get_implied_cov(B, zeta)
-        residual = sample_cov - sigma_hat
-
-        norm_residual = np.zeros(residual.shape)
-        for i in range(norm_residual.shape[0]):
-            for j in range(norm_residual.shape[1]):
-                norm_residual[i, j] = (sample_cov[i, j] - sigma_hat[i, j]) / backend.sqrt(
-                    ((sigma_hat[i, i] * sigma_hat[j, j]) + (sigma_hat[i, j] ** 2)) / N
-                )
-
-        # Compute chi-square value.
-        likelihood_ratio = -(N - 1) * (
-            backend.log(backend.linalg.det(sigma_hat))
-            + (backend.linalg.inv(sigma_hat) @ sample_cov).trace()
-            - backend.log(backend.linalg.det(S))
-            - S.shape[0]
-        )
-        if method.lower() == "ml":
-            error = self.ml_loss(params, loss_args={"S": S})
-        elif method.lower() == "uls":
-            error = self.uls_loss(params, loss_args={"S": S})
-        elif method.lower() == "gls":
-            error = self.gls_loss(params, loss_args={"S": S, "W": W})
-        chi_square = likelihood_ratio / error
-
-        free_params = self.B_mask.sum()
-        dof = ((S.shape[0] * (S.shape[0] + 1)) / 2) - free_params
-
-        summary = {
-            "Sample Size": N,
-            "Sample Covariance": sample_cov,
-            "Model Implied Covariance": sigma_hat,
-            "Residual": residual,
-            "Normalized Residual": norm_residual,
-            "chi_square": chi_square,
-            "dof": dof,
-        }
-
-        # Update the model with the learned params
-        self.model.set_params(B=compat_fns.to_numpy(params["B"]), zeta=compat_fns.to_numpy(params["zeta"]))
-        return summary
+        pass
 
 
 class IVEstimator:
@@ -455,29 +295,4 @@ class IVEstimator:
         >>> estimator = IVEstimator(model)
         >>> param, results = estimator.fit(X="X", Y="Y", data=data)
         """
-        if (ivs is None) and (civs is None):
-            inference = CausalInference(self.model)
-            ivs = inference.get_ivs(X, Y)
-            civs = inference.get_conditional_ivs(X, Y)
-
-        civs = [civ for civ in civs if civ[0] not in ivs]
-
-        reg_covars = []
-        for var in self.model.graph.predecessors(X):
-            if var in self.model.observed:
-                reg_covars.append(var)
-
-        # Get CIV conditionals
-        civ_conditionals = []
-        for civ in civs:
-            civ_conditionals.extend(civ[1])
-
-        # First stage regression.
-        params = sm.OLS(data.loc[:, X], data.loc[:, reg_covars + civ_conditionals]).fit().params
-
-        data["X_pred"] = np.zeros(data.shape[0])
-        for var in reg_covars:
-            data.X_pred += params[var] * data.loc[:, var]
-
-        summary = sm.OLS(data.loc[:, Y], data.loc[:, ["X_pred"] + civ_conditionals]).fit()
-        return summary.params["X_pred"], summary
+        pass

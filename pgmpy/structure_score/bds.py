@@ -86,41 +86,11 @@ class BDs(BDeu):
 
     def structure_prior_ratio(self, operation) -> float:
         """Compute the prior ratio for a graph edit."""
-        if operation == "+":
-            return -log(2.0)
-        if operation == "-":
-            return log(2.0)
-        return 0
+        pass
 
     def structure_prior(self, model) -> float:
         """Compute the marginal uniform prior for a structure."""
-        nedges = float(len(model.edges()))
-        nnodes = float(len(model.nodes()))
-        possible_edges = nnodes * (nnodes - 1) / 2.0
-        score = -(nedges + possible_edges) * log(2.0)
-        return score
+        pass
 
     def _local_score(self, variable: str, parents: tuple[str, ...]) -> float:
-        state_counts = self.state_counts(variable, parents, reindex=False)
-        num_parents_states = np.prod([len(self.state_names[var]) for var in parents])
-
-        counts = np.asarray(state_counts)
-        counts_size = num_parents_states * len(self.state_names[variable])
-        log_gamma_counts = np.zeros_like(counts, dtype=float)
-        alpha = self.equivalent_sample_size / state_counts.shape[1]
-        beta = self.equivalent_sample_size / counts_size
-        gammaln(counts + beta, out=log_gamma_counts)
-
-        log_gamma_conds = np.sum(counts, axis=0, dtype=float)
-        gammaln(log_gamma_conds + alpha, out=log_gamma_conds)
-
-        gamma_counts_adj = (num_parents_states - counts.shape[1]) * len(self.state_names[variable]) * gammaln(beta)
-        gamma_conds_adj = (num_parents_states - counts.shape[1]) * gammaln(alpha)
-
-        score = (
-            (np.sum(log_gamma_counts) + gamma_counts_adj)
-            - (np.sum(log_gamma_conds) + gamma_conds_adj)
-            + state_counts.shape[1] * lgamma(alpha)
-            - counts_size * lgamma(beta)
-        )
-        return score
+        pass

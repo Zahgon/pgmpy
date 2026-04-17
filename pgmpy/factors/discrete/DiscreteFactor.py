@@ -135,7 +135,7 @@ class DiscreteFactor(BaseFactor, StateNameMixin):
         >>> phi.scope()
         ['x1', 'x2', 'x3']
         """
-        return self.variables
+        pass
 
     def get_cardinality(self, variables):
         """
@@ -162,13 +162,7 @@ class DiscreteFactor(BaseFactor, StateNameMixin):
         >>> {k: int(v) for k, v in phi.get_cardinality(variables=["x1", "x2"]).items()}
         {'x1': 2, 'x2': 3}
         """
-        if isinstance(variables, str):
-            raise TypeError("variables: Expected type list or array-like, got type str")
-
-        if not all([var in self.variables for var in variables]):
-            raise ValueError("Variable not in scope")
-
-        return {var: self.cardinality[self.variables.index(var)] for var in variables}
+        pass
 
     def get_value(self, **kwargs):
         """
@@ -195,21 +189,7 @@ class DiscreteFactor(BaseFactor, StateNameMixin):
         >>> float(phi.get_value(lung="yes", tub="no", either="yes"))
         1.0
         """
-        for variable in kwargs.keys():
-            if variable not in self.variables:
-                raise ValueError(f"Factor doesn't have the variable: {variable}")
-
-        index = []
-        for var in self.variables:
-            if var not in kwargs.keys():
-                raise ValueError(f"Variable: {var} not found in arguments")
-            else:
-                try:
-                    index.append(self.name_to_no[var][kwargs[var]])
-                except KeyError:
-                    logger.info(f"Using {var} state as number instead of name.")
-                    index.append(kwargs[var])
-        return self.values[tuple(index)]
+        pass
 
     def set_value(self, value, **kwargs):
         """
@@ -237,24 +217,7 @@ class DiscreteFactor(BaseFactor, StateNameMixin):
         >>> float(phi.get_value(lung="yes", tub="no", either="yes"))
         0.1
         """
-        if not isinstance(value, (float, int)):
-            raise ValueError(f"value must be float. Got: {type(value)}.")
-
-        for variable in kwargs.keys():
-            if variable not in self.variables:
-                raise ValueError(f"Factor doesn't have the variable: {variable}")
-
-        index = []
-        for var in self.variables:
-            if var not in kwargs.keys():
-                raise ValueError(f"Variable: {var} not found in arguments")
-            elif isinstance(kwargs[var], str):
-                index.append(self.name_to_no[var][kwargs[var]])
-            else:
-                logger.info(f"Using {var} state as number instead of name.")
-                index.append(kwargs[var])
-
-        self.values[tuple(index)] = value
+        pass
 
     def assignment(self, index):
         """
@@ -278,32 +241,7 @@ class DiscreteFactor(BaseFactor, StateNameMixin):
         >>> phi.assignment([1, 2])
         [[('diff', 0), ('intel', 1)], [('diff', 1), ('intel', 0)]]
         """
-        if config.get_backend() == "numpy":
-            index = np.array(index)
-        else:
-            import torch
-
-            if (len(index) == 1) and (isinstance(index[0], torch.Tensor)):
-                index = index[0][None]
-            else:
-                index = torch.tensor(index, dtype=torch.int, device=config.get_device())
-
-        max_possible_index = np.prod(self.cardinality) - 1
-        if not all(i <= max_possible_index for i in index):
-            raise IndexError("Index greater than max possible index")
-
-        assignments = compat_fns.get_compute_backend().zeros((len(index), len(self.scope())), dtype=int)
-        rev_card = self.cardinality[::-1]
-        for i, card in enumerate(rev_card):
-            assignments[:, i] = index % card
-            index = index // card
-
-        assignments = compat_fns.flip(assignments, axis=(1,))
-
-        return [
-            [(key, self.get_state_names(key, int(val))) for key, val in zip(self.variables, values)]
-            for values in assignments
-        ]
+        pass
 
     def identity_factor(self):
         """
@@ -336,12 +274,7 @@ class DiscreteFactor(BaseFactor, StateNameMixin):
                 [1., 1.],
                 [1., 1.]]])
         """
-        return DiscreteFactor(
-            variables=self.variables,
-            cardinality=self.cardinality,
-            values=compat_fns.ones(compat_fns.size(self.values)),
-            state_names=self.state_names,
-        )
+        pass
 
     def marginalize(self, variables, inplace=True):
         """
@@ -373,28 +306,7 @@ class DiscreteFactor(BaseFactor, StateNameMixin):
         >>> phi.variables
         ['x2']
         """
-
-        if isinstance(variables, str):
-            raise TypeError("variables: Expected type list or array-like, got type str")
-
-        phi = self if inplace else self.copy()
-
-        for var in variables:
-            if var not in phi.variables:
-                raise ValueError(f"{var} not in scope.")
-
-        var_indexes = [phi.variables.index(var) for var in variables]
-
-        index_to_keep = sorted(set(range(len(self.variables))) - set(var_indexes))
-        n_variables = len(self.variables)
-        phi.variables = [phi.variables[index] for index in index_to_keep]
-        phi.cardinality = phi.cardinality[index_to_keep]
-        phi.del_state_names(variables)
-
-        phi.values = compat_fns.einsum(phi.values, range(n_variables), index_to_keep)
-
-        if not inplace:
-            return phi
+        pass
 
     def maximize(self, variables, inplace=True):
         """
@@ -448,25 +360,7 @@ class DiscreteFactor(BaseFactor, StateNameMixin):
                [0.05, 0.07],
                [0.15, 0.21]])
         """
-        if isinstance(variables, str):
-            raise TypeError("variables: Expected type list or array-like, got type str")
-
-        phi = self if inplace else self.copy()
-
-        for var in variables:
-            if var not in phi.variables:
-                raise ValueError(f"{var} not in scope.")
-
-        var_indexes = [phi.variables.index(var) for var in variables]
-
-        index_to_keep = sorted(set(range(len(self.variables))) - set(var_indexes))
-        phi.variables = [phi.variables[index] for index in index_to_keep]
-        phi.cardinality = phi.cardinality[index_to_keep]
-        phi.del_state_names(variables)
-        phi.values = compat_fns.max(phi.values, axis=tuple(var_indexes))
-
-        if not inplace:
-            return phi
+        pass
 
     def normalize(self, inplace=True):
         """
@@ -511,12 +405,7 @@ class DiscreteFactor(BaseFactor, StateNameMixin):
                 [0.12121212, 0.13636364],
                 [0.15151515, 0.16666667]]])
         """
-        phi = self if inplace else self.copy()
-
-        phi.values = phi.values / (phi.values.sum())
-
-        if not inplace:
-            return phi
+        pass
 
     def reduce(self, values, inplace=True, show_warnings=True):
         """
@@ -554,45 +443,7 @@ class DiscreteFactor(BaseFactor, StateNameMixin):
         >>> phi.values
         array([0., 1.])
         """
-        # Check if values is an array
-        if isinstance(values, str):
-            raise TypeError("values: Expected type list or array-like, got type str")
-
-        if not all([isinstance(state_tuple, tuple) for state_tuple in values]):
-            raise TypeError("values: Expected type list of tuples, get type {type}", type(values[0]))
-
-        # Check if all variables in values are in the factor
-        for var, _ in values:
-            if var not in self.variables:
-                raise ValueError(f"The variable: {var} is not in the factor")
-
-        phi = self if inplace else self.copy()
-
-        # Convert the state names to state number. If state name not found treat them as
-        # state numbers.
-        try:
-            values = [(var, self.get_state_no(var, state_name)) for var, state_name in values]
-        except KeyError:
-            if show_warnings:
-                logger.warning("Found unknown state name. Trying to switch to using all state names as state numbers")
-
-        var_index_to_del = []
-        slice_ = [slice(None)] * len(self.variables)
-        for var, state in values:
-            var_index = phi.variables.index(var)
-            slice_[var_index] = state
-            var_index_to_del.append(var_index)
-
-        var_index_to_keep = sorted(set(range(len(phi.variables))) - set(var_index_to_del))
-        # set difference is not guaranteed to maintain ordering
-        phi.variables = [phi.variables[index] for index in var_index_to_keep]
-        phi.cardinality = phi.cardinality[var_index_to_keep]
-        phi.del_state_names([var for var, _ in values])
-
-        phi.values = phi.values[tuple(slice_)]
-
-        if not inplace:
-            return phi
+        pass
 
     def sum(self, phi1, inplace=True):
         """
@@ -647,48 +498,7 @@ class DiscreteFactor(BaseFactor, StateNameMixin):
                 [[11., 13.],
                  [16., 18.]]]])
         """
-        phi = self if inplace else self.copy()
-        if isinstance(phi1, (int, float)):
-            phi.values += phi1
-        else:
-            phi1 = phi1.copy()
-
-            # modifying phi to add new variables
-            extra_vars = set(phi1.variables) - set(phi.variables)
-            if extra_vars:
-                slice_ = [slice(None)] * len(phi.variables)
-                slice_.extend([np.newaxis] * len(extra_vars))
-                phi.values = phi.values[tuple(slice_)]
-
-                phi.variables.extend(extra_vars)
-
-                new_var_card = phi1.get_cardinality(extra_vars)
-                phi.cardinality = np.append(phi.cardinality, [new_var_card[var] for var in extra_vars])
-                phi.add_state_names(phi1)
-
-            # modifying phi1 to add new variables
-            extra_vars = set(phi.variables) - set(phi1.variables)
-            if extra_vars:
-                slice_ = [slice(None)] * len(phi1.variables)
-                slice_.extend([np.newaxis] * len(extra_vars))
-                phi1.values = phi1.values[tuple(slice_)]
-
-                phi1.variables.extend(extra_vars)
-                # No need to modify cardinality as we don't need it.
-
-            # rearranging the axes of phi1 to match phi
-            for axis in range(phi.values.ndim):
-                exchange_index = phi1.variables.index(phi.variables[axis])
-                phi1.variables[axis], phi1.variables[exchange_index] = (
-                    phi1.variables[exchange_index],
-                    phi1.variables[axis],
-                )
-                phi1.values = phi1.values.swapaxes(axis, exchange_index)
-
-            phi.values = phi.values + phi1.values
-
-        if not inplace:
-            return phi
+        pass
 
     def product(self, phi1, inplace=True):
         """
@@ -737,33 +547,7 @@ class DiscreteFactor(BaseFactor, StateNameMixin):
                 [[10, 30],
                  [55, 77]]]]
         """
-        phi = self if inplace else self.copy()
-        if isinstance(phi1, (int, float)):
-            phi.values *= phi1
-        else:
-            # Compute the new values
-            new_variables = list(set(phi.variables).union(phi1.variables))
-            var_to_int = {var: index for index, var in enumerate(new_variables)}
-            phi.values = compat_fns.einsum(
-                phi.values,
-                [var_to_int[var] for var in phi.variables],
-                phi1.values,
-                [var_to_int[var] for var in phi1.variables],
-                range(len(new_variables)),
-            )
-
-            # Compute the new cardinality array
-            phi_card = {var: card for var, card in zip(phi.variables, phi.cardinality)}
-            phi1_card = {var: card for var, card in zip(phi1.variables, phi1.cardinality)}
-            phi_card.update(phi1_card)
-            phi.cardinality = np.array([phi_card[var] for var in new_variables])
-
-            # Set the new variables and state names
-            phi.variables = new_variables
-            phi.add_state_names(phi1)
-
-        if not inplace:
-            return phi
+        pass
 
     def divide(self, phi1, inplace=True):
         """
@@ -806,38 +590,7 @@ class DiscreteFactor(BaseFactor, StateNameMixin):
                 [4.        , 2.25      ],
                 [5.        , 2.75      ]]])
         """
-        phi = self if inplace else self.copy()
-        phi1 = phi1.copy()
-
-        if set(phi1.variables) - set(phi.variables):
-            raise ValueError("Scope of divisor should be a subset of dividend")
-
-        # Adding extra variables in phi1.
-        extra_vars = set(phi.variables) - set(phi1.variables)
-        if extra_vars:
-            slice_ = [slice(None)] * len(phi1.variables)
-            slice_.extend([np.newaxis] * len(extra_vars))
-            phi1.values = phi1.values[tuple(slice_)]
-
-            phi1.variables.extend(extra_vars)
-
-        # Rearranging the axes of phi1 to match phi
-        for axis in range(phi.values.ndim):
-            exchange_index = phi1.variables.index(phi.variables[axis])
-            phi1.variables[axis], phi1.variables[exchange_index] = (
-                phi1.variables[exchange_index],
-                phi1.variables[axis],
-            )
-            phi1.values = phi1.values.swapaxes(axis, exchange_index)
-
-        phi.values = phi.values / phi1.values
-
-        # If factor division 0/0 = 0 but is undefined for x/0. In pgmpy we are using
-        # np.inf to represent x/0 cases.
-        phi.values[config.get_compute_backend().isnan(phi.values)] = 0
-
-        if not inplace:
-            return phi
+        pass
 
     def sample(self, n, seed=None):
         """
@@ -865,25 +618,7 @@ class DiscreteFactor(BaseFactor, StateNameMixin):
         3   1   1   1
         4   1   2   0
         """
-        phi = self.normalize(inplace=False)
-        p = phi.values.ravel()
-
-        # TODO: Fix this to make it work natively in torch.
-        p = compat_fns.to_numpy(p)
-
-        rng = np.random.default_rng(seed=seed)
-        indexes = rng.choice(range(len(p)), size=n, p=p)
-        samples = []
-        index_to_state = {}
-        for index in indexes:
-            if index in index_to_state:
-                samples.append(index_to_state[index])
-            else:
-                assignment = self.assignment([index])[0]
-                samples.append(assignment)
-                index_to_state[index] = assignment
-
-        return pd.DataFrame([{k: v for k, v in s} for s in samples])
+        pass
 
     def copy(self):
         """
@@ -917,24 +652,13 @@ class DiscreteFactor(BaseFactor, StateNameMixin):
                 [12., 13., 14.],
                 [15., 16., 17.]]])
         """
-        copy = DiscreteFactor.__new__(self.__class__)
-        copy.variables = [*self.variables]
-        copy.cardinality = np.array(self.cardinality)
-        copy.values = compat_fns.copy(self.values)
-        copy.state_names = self.state_names.copy()
-        copy.no_to_name = self.no_to_name.copy()
-        copy.name_to_no = self.name_to_no.copy()
-        return copy
+        pass
 
     def is_valid_cpd(self):
         """
         Checks if the factor's values can be used for a valid CPD.
         """
-        return config.get_compute_backend().allclose(
-            self.to_factor().marginalize(self.scope()[:1], inplace=False).values.flatten(),
-            compat_fns.ones(np.prod(self.cardinality[:0:-1])),
-            atol=0.01,
-        )
+        pass
 
     def __str__(self):
         return self._str(phi_or_p="phi", tablefmt="grid")
@@ -951,25 +675,7 @@ class DiscreteFactor(BaseFactor, StateNameMixin):
         print_state_names: boolean
                 If True, the user defined state names are displayed.
         """
-        string_header = list(map(str, self.scope()))
-        string_header.append(f"{phi_or_p}({','.join(string_header)})")
-
-        value_index = 0
-        factor_table = []
-        for prob in product(*[range(card) for card in self.cardinality]):
-            if self.state_names and print_state_names:
-                prob_list = [
-                    f"{list(self.variables)[i]}({self.state_names[list(self.variables)[i]][prob[i]]})"
-                    for i in range(len(self.variables))
-                ]
-            else:
-                prob_list = [f"{list(self.variables)[i]}_{prob[i]}" for i in range(len(self.variables))]
-
-            prob_list.append(self.values.ravel()[value_index])
-            factor_table.append(prob_list)
-            value_index += 1
-
-        return tabulate(factor_table, headers=string_header, tablefmt=tablefmt, floatfmt=".4f")
+        pass
 
     def __repr__(self):
         var_card = ", ".join([f"{var}:{card}" for var, card in zip(self.variables, self.cardinality)])

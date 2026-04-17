@@ -74,12 +74,7 @@ class JunctionTree(ClusterGraph):
         ...     [(("a", "b", "c"), ("a", "b")), (("a", "b", "c"), ("a", "c"))]
         ... )
         """
-        if u in self.nodes() and v in self.nodes() and nx.has_path(self, u, v):
-            raise ValueError(
-                f"Addition of edge between {str(u)} and {str(v)} forms a cycle breaking the properties of Junction Tree"
-            )
-
-        super().add_edge(u, v, **kwargs)
+        pass
 
     @property
     def states(self):
@@ -91,9 +86,7 @@ class JunctionTree(ClusterGraph):
         state_dict: dict
             Dictionary of nodes to possible states
         """
-        state_names_list = [phi.state_names for phi in self.factors]
-        state_dict = {node: states for d in state_names_list for node, states in d.items()}
-        return state_dict
+        pass
 
     def check_model(self):
         """
@@ -110,10 +103,7 @@ class JunctionTree(ClusterGraph):
         check: boolean
             True if all the checks are passed
         """
-        if not nx.is_connected(self):
-            raise ValueError("The Junction Tree defined is not fully connected.")
-
-        return super().check_model()
+        pass
 
     def copy(self):
         """
@@ -146,9 +136,4 @@ class JunctionTree(ClusterGraph):
          <DiscreteFactor representing phi(a:1, c:2) at 0x...>]
 
         """
-        copy = JunctionTree(self.edges())
-        copy.add_nodes_from(self.nodes())
-        if self.factors:
-            factors_copy = [factor.copy() for factor in self.factors]
-            copy.add_factors(*factors_copy)
-        return copy
+        pass

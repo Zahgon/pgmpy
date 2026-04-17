@@ -121,15 +121,7 @@ class MaximumLikelihoodEstimator(ParameterEstimator):
         <TabularCPD representing P(C:2) at 0x...>,
         <TabularCPD representing P(D:2 | C:2) at 0x...>]
         """
-
-        if isinstance(self.model, JunctionTree):
-            return self.estimate_potentials()
-
-        parameters = Parallel(n_jobs=n_jobs)(delayed(self.estimate_cpd)(node, weighted) for node in self.model.nodes())
-        # TODO: A hacky solution to return correct value for the chosen backend. Ref #1675
-        parameters = [p.copy() for p in parameters]
-
-        return parameters
+        pass
 
     def estimate_cpd(self, node: Hashable, weighted: bool = False) -> TabularCPD:
         """
@@ -176,34 +168,7 @@ class MaximumLikelihoodEstimator(ParameterEstimator):
         | C(1) | 1.0  | 1.0  | 0.0  | 0.5  |
         +------+------+------+------+------+
         """
-
-        state_counts = self.state_counts(node, weighted=weighted)
-
-        # if a column contains only `0`s (no states observed for some configuration
-        # of parents' states) fill that column uniformly instead
-        state_counts.iloc[:, (state_counts.values == 0).all(axis=0)] = 1.0
-
-        parents = sorted(self.model.get_parents(node))
-        parents_cardinalities = [len(self.state_names[parent]) for parent in parents]
-        node_cardinality = len(self.state_names[node])
-
-        # Get the state names for the CPD
-        state_names = {node: list(state_counts.index)}
-        if parents:
-            state_names.update(
-                {state_counts.columns.names[i]: list(state_counts.columns.levels[i]) for i in range(len(parents))}
-            )
-
-        cpd = TabularCPD(
-            node,
-            node_cardinality,
-            np.array(state_counts),
-            evidence=parents,
-            evidence_card=parents_cardinalities,
-            state_names={var: self.state_names[var] for var in chain([node], parents)},
-        )
-        cpd.normalize()
-        return cpd
+        pass
 
     def estimate_potentials(self) -> FactorDict:
         """
@@ -266,39 +231,4 @@ class MaximumLikelihoodEstimator(ParameterEstimator):
         | B(1) | C(1) |     0.5000 |
         +------+------+------------+
         """
-        if not isinstance(self.model, JunctionTree):
-            raise NotImplementedError("Iterative Proportional Fitting is only implemented for Junction Trees.")
-
-        if not hasattr(self.model, "clique_beliefs"):
-            raise NotImplementedError("A model containing clique beliefs is required to estimate parameters.")
-
-        clique_beliefs = self.model.clique_beliefs
-
-        if not isinstance(clique_beliefs, FactorDict):
-            raise TypeError("`UndirectedMaximumLikelihoodEstimator.model.clique_beliefs` must be a `FactorDict`.")
-
-        # These are the variables as represented by the `JunctionTree`.
-        cliques = list(clique_beliefs.keys())
-        empirical_marginals = FactorDict.from_dataframe(df=self.data, marginals=cliques)
-        potentials = FactorDict({})
-        seen = set()
-
-        # ML Machine Learning - A Probabilistic Perspective
-        # Chapter 19, Algorithm 19.2, Page 682:
-        # Update each clique by multiplying the potential value by
-        # the ratio of the empirical counts over expected counts.
-        # Since the potential values are equal to the expected counts
-        # for a JunctionTree, we can simplify this to just the empirical counts.
-        # This is also described in section 19.5.7.4.
-        for clique in cliques:
-            # Calculate the running sepset between the new clique and all of the
-            # variables we have previously seen.
-            variables = tuple(set(clique) - seen)
-            seen.update(clique)
-            potentials[clique] = empirical_marginals[clique]
-
-            # Divide out the sepset.
-            if variables:
-                marginalized = empirical_marginals[clique].marginalize(variables=variables, inplace=False)
-                potentials[clique] = potentials[clique] / marginalized
-        return potentials
+        pass

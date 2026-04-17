@@ -33,19 +33,7 @@ class ApproxInference:
         """
         Takes a groupby dataframe and converts it into a pgmpy.factors.discrete.DiscreteFactor object.
         """
-        variables = list(df.index.names)
-        if len(variables) == 1:
-            df_index = state_names[variables[0]]
-        else:
-            df_index = itertools.product(*[state_names[var] for var in variables])
-        # state_names = {var: list(df.index.unique(var)) for var in variables}
-        cardinality = [len(state_names[var]) for var in variables]
-        return DiscreteFactor(
-            variables=variables,
-            cardinality=cardinality,
-            values=df.reindex(df_index).fillna(0).values,
-            state_names=state_names,
-        )
+        pass
 
     def get_distribution(self, samples, variables, state_names=None, joint=True):
         """
@@ -68,22 +56,7 @@ class ApproxInference:
             Else, returns a dict with marginal distribution of each variable in
             `variables`.
         """
-        if isinstance(variables, (set, tuple)):
-            variables = list(variables)
-
-        if joint == True:
-            return self._get_factor_from_df(
-                samples.groupby(variables, observed=False).size() / samples.shape[0],
-                state_names,
-            )
-        else:
-            return {
-                var: self._get_factor_from_df(
-                    samples.groupby([var], observed=False).size() / samples.shape[0],
-                    state_names,
-                )
-                for var in variables
-            }
+        pass
 
     def query(
         self,
@@ -153,50 +126,7 @@ class ApproxInference:
         {'HISTORY': <DiscreteFactor representing phi(HISTORY:2) at 0x...>,
          'CVP': <DiscreteFactor representing phi(CVP:3) at 0x...>}
         """
-        # Step 1: If samples are not provided, generate samples for the query
-        if samples is None:
-            if isinstance(self.model, DiscreteBayesianNetwork):
-                samples = self.model.simulate(
-                    n_samples=n_samples,
-                    evidence=evidence,
-                    virtual_evidence=virtual_evidence,
-                    seed=seed,
-                    show_progress=show_progress,
-                )
-            elif isinstance(self.model, DynamicBayesianNetwork):
-                if evidence is None:
-                    evidence = dict()
-                if virtual_evidence is None:
-                    virtual_evidence = dict()
-
-                max_time_slices = 0
-                for var in variables:
-                    if var[1] > max_time_slices:
-                        max_time_slices = var[1]
-                for var, state in evidence.items():
-                    if var[1] > max_time_slices:
-                        max_time_slices = var[1]
-                for cpd in virtual_evidence:
-                    if cpd.variable[1] > max_time_slices:
-                        max_time_slices = cpd.variable[1]
-                samples = self.model.simulate(
-                    n_samples=n_samples,
-                    n_time_slices=max_time_slices + 1,
-                    evidence=evidence,
-                    virtual_evidence=virtual_evidence,
-                    show_progress=show_progress,
-                    seed=seed,
-                )
-
-        # Step 2: If state_names is None, infer it from samples.
-        if state_names is None:
-            if isinstance(self.model, DiscreteBayesianNetwork):
-                state_names = {var: list(samples.loc[:, var].unique()) for var in variables}
-            elif isinstance(self.model, DynamicBayesianNetwork):
-                state_names = {var: list(samples.loc[:, [var]].iloc[:, 0].unique()) for var in variables}
-
-        # Step 3: Compute the distributions and return it.
-        return self.get_distribution(samples, variables=variables, state_names=state_names, joint=joint)
+        pass
 
     def map_query(
         self,
@@ -274,24 +204,4 @@ class ApproxInference:
         ... )
         {'HISTORY': 'TRUE'}
         """
-        final_distribution = self.query(
-            variables,
-            n_samples=n_samples,
-            samples=samples,
-            evidence=evidence,
-            virtual_evidence=virtual_evidence,
-            joint=True,
-            state_names=state_names,
-            show_progress=show_progress,
-            seed=seed,
-        )
-
-        argmax = compat_fns.argmax(final_distribution.values)
-        assignment = final_distribution.assignment([argmax])[0]
-
-        map_query_results = {}
-        for var_assignment in assignment:
-            var, value = var_assignment
-            map_query_results[var] = value
-
-        return map_query_results
+        pass

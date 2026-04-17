@@ -230,59 +230,7 @@ class PC(BaseConstraintEstimator):
         >>> print(len(model_gsq.edges()))
         28
         """
-        # Step 0: Do checks that the specified parameters are correct, else throw meaningful error.
-        if variant not in ("orig", "stable", "parallel"):
-            raise ValueError(f"variant must be one of: orig, stable, or parallel. Got: {variant}")
-
-        ci_test = ci_registry.get_test(ci_test, data=self.data)
-
-        if expert_knowledge is None:
-            expert_knowledge = ExpertKnowledge()
-
-        if expert_knowledge.search_space:
-            expert_knowledge.limit_search_space(self.data.columns)
-
-        # Step 1: Run the PC algorithm to build the skeleton and get the separating sets.
-        skel, separating_sets = self.build_skeleton(
-            variant=variant,
-            ci_test=ci_test,
-            significance_level=significance_level,
-            max_cond_vars=max_cond_vars,
-            expert_knowledge=expert_knowledge,
-            enforce_expert_knowledge=enforce_expert_knowledge,
-            n_jobs=n_jobs,
-            show_progress=show_progress,
-            **kwargs,
-        )
-
-        if return_type.lower() == "skeleton":
-            return skel, separating_sets
-
-        # Step 2: Orient the edges based on collider structures.
-        pdag = self.orient_colliders(skel, separating_sets, expert_knowledge.temporal_ordering)
-
-        # Step 3: Either return the CPDAG, integrate expert knowledge or fully orient the edges to build a DAG.
-        if expert_knowledge.temporal_order != [[]]:
-            pdag = expert_knowledge.apply_expert_knowledge(pdag)
-            pdag = pdag.apply_meeks_rules(apply_r4=True)
-
-        elif not enforce_expert_knowledge:
-            pdag = pdag.apply_meeks_rules(apply_r4=False)
-            pdag = expert_knowledge.apply_expert_knowledge(pdag)
-            pdag = pdag.apply_meeks_rules(apply_r4=True)
-
-        else:
-            pdag = pdag.apply_meeks_rules(apply_r4=False)
-
-        if self.data is not None:
-            pdag.add_nodes_from(set(self.data.columns) - set(pdag.nodes()))
-
-        if return_type.lower() in ("pdag", "cpdag"):
-            return pdag
-        elif return_type.lower() == "dag":
-            return pdag.to_dag()
-        else:
-            raise ValueError(f"return_type must be one of: dag, pdag, cpdag, or skeleton. Got: {return_type}")
+        pass
 
     @staticmethod
     def orient_colliders(
@@ -334,31 +282,4 @@ class PC(BaseConstraintEstimator):
         >>> sorted(pdag.edges())
         [('A', 'C'), ('A', 'D'), ('B', 'C'), ('D', 'A'), ('D', 'C')]
         """
-
-        pdag = skeleton.to_directed()
-
-        # 1) for each X-Z-Y, if Z not in the separating set of X,Y, then orient edges
-        # as X->Z<-Y (Algorithm 3.4 in Koller & Friedman PGM, page 86)
-        for X, Y in permutations(sorted(pdag.nodes()), 2):
-            if not skeleton.has_edge(X, Y):
-                for Z in set(skeleton.neighbors(X)) & set(skeleton.neighbors(Y)):
-                    if Z not in separating_sets[frozenset((X, Y))]:
-                        if (temporal_ordering == dict()) or (
-                            (temporal_ordering[Z] >= temporal_ordering[X])
-                            and (temporal_ordering[Z] >= temporal_ordering[Y])
-                        ):
-                            pdag.remove_edges_from([(Z, X), (Z, Y)])
-
-        edges = set(pdag.edges())
-        undirected_edges = set()
-        directed_edges = set()
-        for u, v in edges:
-            if (v, u) in edges:
-                undirected_edges.add(tuple(sorted((u, v))))
-            else:
-                directed_edges.add((u, v))
-
-        pdag_oriented = PDAG(directed_ebunch=directed_edges, undirected_ebunch=undirected_edges)
-        pdag_oriented.add_nodes_from(pdag.nodes())
-
-        return pdag_oriented
+        pass

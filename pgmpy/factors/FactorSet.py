@@ -77,7 +77,7 @@ class FactorSet:
              <DiscreteFactor representing phi(x5:2, x6:2, x7:2) at 0x7f8e32b4c750>,
              <DiscreteFactor representing phi(x3:2, x4:2, x1:2) at 0x7f8e32b4cb50>])
         """
-        self.factors.update(factors)
+        pass
 
     def remove_factors(self, *factors):
         """
@@ -111,8 +111,7 @@ class FactorSet:
         >>> print(factor_set1)  # doctest: +ELLIPSIS
         {<DiscreteFactor representing phi(x5:2, x6:2, x7:2) at 0x...>}
         """
-        for factor in factors:
-            self.factors.remove(factor)
+        pass
 
     def get_factors(self):
         """
@@ -138,7 +137,7 @@ class FactorSet:
          <DiscreteFactor representing phi(x3:2, x4:2, x1:2) at 0x7f827c0a2358>,
          <DiscreteFactor representing phi(x5:2, x6:2, x7:2) at 0x7f825243f9e8>}
         """
-        return self.factors
+        pass
 
     def product(self, factorset, inplace=True):
         r"""
@@ -193,13 +192,7 @@ class FactorSet:
         {<DiscreteFactor representing phi(x5:2, x6:2, x7:2) at 0x20d4b0f49d0>,
         ... <DiscreteFactor representing phi(x5:2, x7:2, x8:2) at 0x20d4b0f51d0>}
         """
-        factor_set = self if inplace else self.copy()
-        factor_set1 = factorset.copy()
-
-        factor_set.add_factors(*factor_set1.factors)
-
-        if not inplace:
-            return factor_set
+        pass
 
     def divide(self, factorset, inplace=True):
         r"""
@@ -248,13 +241,7 @@ class FactorSet:
              <DiscreteFactor representing phi(x1:2, x2:3, x3:2) at 0x7f8e32b5b050>,
              <DiscreteFactor representing phi(x5:2, x7:2, x8:2) at 0x7f8e32b5b8d0>])
         """
-        factor_set = self if inplace else self.copy()
-        factor_set1 = factorset.copy()
-
-        factor_set.add_factors(*[phi.identity_factor() / phi for phi in factor_set1.factors])
-
-        if not inplace:
-            return factor_set
+        pass
 
     def marginalize(self, variables, inplace=True):
         """
@@ -288,23 +275,7 @@ class FactorSet:
         set([<DiscreteFactor representing phi(x2:3, x3:2) at 0x7f8e32b4cc10>,
              <DiscreteFactor representing phi(x3:2, x4:2) at 0x7f8e32b4cf90>])
         """
-        if isinstance(variables, str):
-            raise TypeError("Expected list or array-like type got type str")
-
-        factor_set = self if inplace else self.copy()
-
-        factors_to_be_marginalized = set(filter(lambda x: set(x.scope()).intersection(variables), factor_set.factors))
-
-        for factor in factors_to_be_marginalized:
-            variables_to_be_marginalized = list(set(factor.scope()).intersection(variables))
-            if inplace:
-                factor.marginalize(variables_to_be_marginalized, inplace=True)
-            else:
-                factor_set.remove_factors(factor)
-                factor_set.add_factors(factor.marginalize(variables_to_be_marginalized, inplace=False))
-
-        if not inplace:
-            return factor_set
+        pass
 
     def __mul__(self, other):
         return self.product(other)
@@ -336,8 +307,7 @@ class FactorSet:
         >>> factor_set_copy  # doctest: +ELLIPSIS
         <pgmpy.factors.FactorSet.FactorSet object at 0x...>
         """
-        # No need to have copies of factors as argument because __init__ method creates copies.
-        return FactorSet(*self.factors)
+        pass
 
 
 def factorset_product(*factorsets_list):
@@ -383,9 +353,7 @@ def factorset_product(*factorsets_list):
          <DiscreteFactor representing phi(x3:2, x4:2, x1:2) at 0x7fb3a1933e10>])
 
     """
-    if not all(isinstance(factorset, FactorSet) for factorset in factorsets_list):
-        raise TypeError("Input parameters must be FactorSet instances")
-    return reduce(lambda x, y: x.product(y, inplace=False), factorsets_list)
+    pass
 
 
 def factorset_divide(factorset1, factorset2):
@@ -434,6 +402,4 @@ def factorset_divide(factorset1, factorset2):
          <DiscreteFactor representing phi(x5:2, x7:2, x8:2) at 0x7f119ad78e90>])
 
     """
-    if not isinstance(factorset1, FactorSet) or not isinstance(factorset2, FactorSet):
-        raise TypeError("factorset1 and factorset2 must be FactorSet instances")
-    return factorset1.divide(factorset2, inplace=False)
+    pass

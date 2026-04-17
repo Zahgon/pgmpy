@@ -46,15 +46,7 @@ class BayesianModelInference(Inference):
         dict: dictionary with probability array for node
             as function of conditional dependency values
         """
-        variable_cpd = self.model.get_cpds(variable)
-        variable_evid = variable_cpd.variables[:0:-1]
-        cached_values = {}
-
-        for state_combination in itertools.product(*[range(self.cardinality[var]) for var in variable_evid]):
-            states = list(zip(variable_evid, state_combination))
-            cached_values[state_combination] = variable_cpd.reduce(states, inplace=False, show_warnings=False).values
-
-        return cached_values
+        pass
 
     @staticmethod
     def _reduce_marg(variable_cpd, reduce_index, sc):
@@ -79,13 +71,7 @@ class BayesianModelInference(Inference):
         list: List of np.array with each element representing the reduced
                 values correponding to the states in sc_values.
         """
-        slice_ = [slice(None) for i in range(len(variable_cpd.variables))]
-        for i, index in enumerate(reduce_index):
-            slice_[index] = sc[i]
-
-        reduced_values = variable_cpd.values[tuple(slice_)]
-        marg_values = contract(reduced_values, range(reduced_values.ndim), [0])
-        return marg_values / marg_values.sum()
+        pass
 
     def pre_compute_reduce_maps(self, variable, evidence=None, state_combinations=None):
         """
@@ -111,30 +97,7 @@ class BayesianModelInference(Inference):
         dict: dictionary with probability array-index for node as function of conditional dependency values,
             dictionary with mapping of probability array-index to probability array.
         """
-        variable_cpd = self.model.get_cpds(variable)
-        if evidence is None:
-            evidence = [var for var in variable_cpd.variables[1:] if var not in self.model.latents]
-
-        if state_combinations is None:
-            state_combinations = [
-                tuple(sc) for sc in itertools.product(*[range(self.cardinality[var]) for var in evidence])
-            ]
-
-        reduce_index = [variable_cpd.variables.index(var) for var in evidence]
-
-        weights_list = compat_fns.stack(
-            [BayesianModelInference._reduce_marg(variable_cpd, reduce_index, sc) for sc in state_combinations]
-        )
-        unique_weights, weights_indices = compat_fns.unique(weights_list, axis=0, return_inverse=True)
-
-        # convert weights to index; make mapping of state to index
-        state_to_index = dict(zip(state_combinations, weights_indices))
-
-        # make mapping of index to weights
-        index_to_weight = dict(enumerate(unique_weights))
-
-        # return mappings of state to index, and index to weight
-        return state_to_index, index_to_weight
+        pass
 
 
 class BaseGradLogPDF:
@@ -162,13 +125,13 @@ class BaseGradLogPDF:
     ...     def __init__(self, position, model):
     ...         BaseGradLogPDF.__init__(self, position, model)
     ...         self.grad_log, self.log_pdf = self._get_gradient_log_pdf()
-    ...
+    pass
     ...     def _get_gradient_log_pdf(self):
     ...         sub_vec = self.position - self.model.mean.flatten()
     ...         grad = -np.dot(self.model.precision_matrix, sub_vec)
     ...         log_pdf = 0.5 * float(np.dot(sub_vec, grad))
     ...         return grad, log_pdf
-    ...
+    pass
     >>> mean = np.array([1, 1])
     >>> covariance = np.array([[1, 0.2], [0.2, 7]])
     >>> model = GaussianDistribution(["x", "y"], mean, covariance)
@@ -227,7 +190,7 @@ class BaseGradLogPDF:
         >>> grad_logp
         array([-0.07826087, -0.09565217])
         """
-        return self.grad_log, self.log_pdf
+        pass
 
 
 class GradLogPDFGaussian(BaseGradLogPDF):
@@ -267,11 +230,7 @@ class GradLogPDFGaussian(BaseGradLogPDF):
         """
         Method that finds gradient and its log at position
         """
-        sub_vec = self.variable_assignments - self.model.mean.flatten()
-        grad = -np.dot(self.model.precision_matrix, sub_vec)
-        log_pdf = 0.5 * np.dot(sub_vec, grad)
-
-        return grad, log_pdf
+        pass
 
 
 class BaseSimulateHamiltonianDynamics:
@@ -332,7 +291,7 @@ class BaseSimulateHamiltonianDynamics:
     ...         self.new_position, self.new_momentum, self.new_grad_logp = (
     ...             self._get_proposed_values()
     ...         )
-    ...
+    pass
     ...     def _get_proposed_values(self):
     ...         momentum_bar = self.momentum + self.stepsize * self.grad_log_position
     ...         position_bar = self.position + self.stepsize * momentum_bar
@@ -340,7 +299,7 @@ class BaseSimulateHamiltonianDynamics:
     ...             position_bar, self.model
     ...         ).get_gradient_log_pdf()
     ...         return position_bar, momentum_bar, grad_log_position
-    ...
+    pass
     >>> pos = np.array([1, 2])
     >>> momentum = np.array([0, 0])
     >>> mean = np.array([0, 0])
@@ -424,7 +383,7 @@ class BaseSimulateHamiltonianDynamics:
         >>> new_grad
         array([-1.34888889, -1.07      ])
         """
-        return self.new_position, self.new_momentum, self.new_grad_logp
+        pass
 
 
 class LeapFrog(BaseSimulateHamiltonianDynamics):
@@ -490,18 +449,7 @@ class LeapFrog(BaseSimulateHamiltonianDynamics):
         """
         Method to perform time splitting using leapfrog
         """
-        # Take half step in time for updating momentum
-        momentum_bar = self.momentum + 0.5 * self.stepsize * self.grad_log_position
-
-        # Take full step in time for updating position
-        position_bar = self.position + self.stepsize * momentum_bar
-
-        grad_log, _ = self.grad_log_pdf(position_bar, self.model).get_gradient_log_pdf()
-
-        # Take remaining half step in time for updating momentum
-        momentum_bar = momentum_bar + 0.5 * self.stepsize * grad_log
-
-        return position_bar, momentum_bar, grad_log
+        pass
 
 
 class ModifiedEuler(BaseSimulateHamiltonianDynamics):
@@ -567,25 +515,11 @@ class ModifiedEuler(BaseSimulateHamiltonianDynamics):
         """
         Method to perform time splitting using Modified euler method
         """
-        # Take full step in time and update momentum
-        momentum_bar = self.momentum + self.stepsize * self.grad_log_position
-
-        # Take full step in time and update position
-        position_bar = self.position + self.stepsize * momentum_bar
-
-        grad_log, _ = self.grad_log_pdf(position_bar, self.model).get_gradient_log_pdf()
-
-        return position_bar, momentum_bar, grad_log
+        pass
 
 
 def _return_samples(samples, state_names_map=None, columns_with_state_names=[]):
     """
     A utility function to return samples according to type
     """
-    if isinstance(samples, np.recarray):
-        samples = pd.DataFrame(samples)
-    if state_names_map is not None:
-        for var in samples.columns:
-            if (var != "_weight") and (var not in columns_with_state_names):
-                samples[var] = samples[var].map(state_names_map[var])
-    return samples
+    pass

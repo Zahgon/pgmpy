@@ -26,72 +26,7 @@ def get_scoring_method(
     use_cache: bool,
     **kwargs,
 ) -> tuple[StructureScore, StructureScore]:
-    available_methods = {
-        "continuous": {
-            "bic-g": BICGauss,
-            "ll-g": LogLikelihoodGauss,
-            "aic-g": AICGauss,
-        },
-        "discrete": {
-            "bic-d": BIC,
-            "k2": K2,
-            "bdeu": BDeu,
-            "bds": BDs,
-            "aic-d": AIC,
-            "ll-d": LogLikeliHood,
-        },
-        "mixed": {
-            "bic-cg": BICCondGauss,
-            "ll-cg": LogLikelihoodCondGauss,
-            "aic-cg": AICCondGauss,
-        },
-    }
-    all_available_methods = [key for subdict in available_methods.values() for key in subdict.keys()]
-
-    var_type = get_dataset_type(data)
-    supported_methods = available_methods[var_type] | available_methods["mixed"]
-
-    if isinstance(scoring_method, str):
-        if scoring_method.lower() in [
-            "k2score",
-            "bdeuscore",
-            "bdsscore",
-            "bicscore",
-            "aicscore",
-        ]:
-            raise ValueError("The scoring method names have been changed. Please refer the documentation.")
-        elif scoring_method.lower() not in list(all_available_methods):
-            raise ValueError(
-                "Unknown scoring method. Please refer documentation for a list of supported score metrics."
-            )
-        elif scoring_method.lower() not in list(supported_methods.keys()):
-            raise ValueError(
-                f"Incorrect scoring method for {var_type}, scoring_method should be one of"
-                f"{list(supported_methods.keys())}, received {scoring_method}. {data.dtypes.unique()}"
-            )
-    elif isinstance(scoring_method, type(None)):
-        # automatically determine scoring method, pick first one
-        scoring_method = list(available_methods[var_type].keys())[0]
-
-    elif not isinstance(scoring_method, StructureScore):
-        raise ValueError(
-            f"scoring_method should either be one of {all_available_methods} or an instance of StructureScore"
-        )
-
-    score: StructureScore
-    if isinstance(scoring_method, str):
-        score = supported_methods[scoring_method.lower()](data=data, **kwargs)
-    else:
-        score = scoring_method
-
-    if use_cache:
-        from pgmpy.estimators.ScoreCache import ScoreCache
-
-        score_c = ScoreCache(score, data)
-    else:
-        score_c = score
-
-    return score, score_c
+    pass
 
 
 class StructureScore(BaseEstimator):
@@ -193,12 +128,7 @@ class StructureScore(BaseEstimator):
             If the model contains nodes not present in the data columns, or if the
             data contains unsupported variable types.
         """
-
-        score = 0
-        for node in model.nodes():
-            score += self.local_score(node, list(model.predecessors(node)))
-        score += self.structure_prior(model)
-        return score
+        pass
 
     def structure_prior(self, model):
         """
@@ -228,7 +158,7 @@ class StructureScore(BaseEstimator):
         >>> print(prior)
         0
         """
-        return 0
+        pass
 
     def structure_prior_ratio(self, operation):
         """
@@ -258,7 +188,7 @@ class StructureScore(BaseEstimator):
         >>> print(ratio)
         0
         """
-        return 0
+        pass
 
 
 class K2(StructureScore):
@@ -347,38 +277,7 @@ class K2(StructureScore):
         [1] Koller & Friedman, Probabilistic Graphical Models - Principles and Techniques, 2009,
             Section 18.3.4–18.3.6 (esp. page 806).
         """
-
-        var_states = self.state_names[variable]
-        var_cardinality = len(var_states)
-        parents = list(parents)
-        state_counts = self.state_counts(variable, parents, reindex=False)
-        num_parents_states = np.prod([len(self.state_names[var]) for var in parents])
-
-        counts = np.asarray(state_counts)
-        log_gamma_counts = np.zeros_like(counts, dtype=float)
-
-        # Compute log(gamma(counts + 1))
-        gammaln(counts + 1, out=log_gamma_counts)
-
-        # Compute the log-gamma conditional sample size
-        log_gamma_conds = np.sum(counts, axis=0, dtype=float)
-        gammaln(log_gamma_conds + var_cardinality, out=log_gamma_conds)
-
-        # TODO: Check why is this needed
-        #
-        # Adjustments when using reindex=False as it drops columns of 0 state counts
-        # gamma_counts_adj = (
-        #     (num_parents_states - counts.shape[1]) * var_cardinality * gammaln(1)
-        # )
-        # gamma_conds_adj = (num_parents_states - counts.shape[1]) * gammaln(
-        #     var_cardinality
-        # )
-        # log_gamma_counts += gamma_counts_adj
-        # log_gamma_conds += gamma_conds_adj
-
-        score = np.sum(log_gamma_counts) - np.sum(log_gamma_conds) + num_parents_states * lgamma(var_cardinality)
-
-        return score
+        pass
 
 
 class BDeu(StructureScore):
@@ -459,36 +358,7 @@ class BDeu(StructureScore):
         ValueError
             If `variable` or any parent is not found in state_names or data.
         """
-
-        parents = list(parents)
-        state_counts = self.state_counts(variable, parents, reindex=False)
-        num_parents_states = np.prod([len(self.state_names[var]) for var in parents])
-
-        counts = np.asarray(state_counts)
-        # The counts_size reflects the full possible table, including dropped zero-count columns.
-        counts_size = num_parents_states * len(self.state_names[variable])
-        log_gamma_counts = np.zeros_like(counts, dtype=float)
-        alpha = self.equivalent_sample_size / num_parents_states
-        beta = self.equivalent_sample_size / counts_size
-        # Compute log(gamma(counts + beta)) for the observed state counts.
-        gammaln(counts + beta, out=log_gamma_counts)
-
-        # Compute the log-gamma of the conditional sample size.
-        log_gamma_conds = np.sum(counts, axis=0, dtype=float)
-        gammaln(log_gamma_conds + alpha, out=log_gamma_conds)
-
-        # Adjustment for missing zero-count columns (when using reindex=False to save memory).
-        gamma_counts_adj = (num_parents_states - counts.shape[1]) * len(self.state_names[variable]) * gammaln(beta)
-        gamma_conds_adj = (num_parents_states - counts.shape[1]) * gammaln(alpha)
-
-        # Final BDeu local score calculation.
-        score = (
-            (np.sum(log_gamma_counts) + gamma_counts_adj)
-            - (np.sum(log_gamma_conds) + gamma_conds_adj)
-            + num_parents_states * lgamma(alpha)
-            - counts_size * lgamma(beta)
-        )
-        return score
+        pass
 
 
 class BDs(BDeu):
@@ -571,11 +441,7 @@ class BDs(BDeu):
         >>> score.structure_prior_ratio("noop")
         0
         """
-        if operation == "+":
-            return -log(2.0)
-        if operation == "-":
-            return log(2.0)
-        return 0
+        pass
 
     def structure_prior(self, model):
         """
@@ -606,11 +472,7 @@ class BDs(BDeu):
         >>> print(prior)
         -4.1588830833596715
         """
-        nedges = float(len(model.edges()))
-        nnodes = float(len(model.nodes()))
-        possible_edges = nnodes * (nnodes - 1) / 2.0
-        score = -(nedges + possible_edges) * log(2.0)
-        return score
+        pass
 
     def local_score(self, variable, parents):
         """
@@ -647,35 +509,7 @@ class BDs(BDeu):
             If `variable` or any parent is not present in `state_names` or data, or if
             the data contains unsupported types (e.g., continuous values).
         """
-
-        parents = list(parents)
-        state_counts = self.state_counts(variable, parents, reindex=False)
-        num_parents_states = np.prod([len(self.state_names[var]) for var in parents])
-
-        counts = np.asarray(state_counts)
-        # counts size is different because reindex=False is dropping columns.
-        counts_size = num_parents_states * len(self.state_names[variable])
-        log_gamma_counts = np.zeros_like(counts, dtype=float)
-        alpha = self.equivalent_sample_size / state_counts.shape[1]
-        beta = self.equivalent_sample_size / counts_size
-        # Compute log(gamma(counts + beta))
-        gammaln(counts + beta, out=log_gamma_counts)
-
-        # Compute the log-gamma conditional sample size
-        log_gamma_conds = np.sum(counts, axis=0, dtype=float)
-        gammaln(log_gamma_conds + alpha, out=log_gamma_conds)
-
-        # Adjustment because of missing 0 columns when using reindex=False for computing state_counts to save memory.
-        gamma_counts_adj = (num_parents_states - counts.shape[1]) * len(self.state_names[variable]) * gammaln(beta)
-        gamma_conds_adj = (num_parents_states - counts.shape[1]) * gammaln(alpha)
-
-        score = (
-            (np.sum(log_gamma_counts) + gamma_counts_adj)
-            - (np.sum(log_gamma_conds) + gamma_conds_adj)
-            + state_counts.shape[1] * lgamma(alpha)
-            - counts_size * lgamma(beta)
-        )
-        return score
+        pass
 
 
 class LogLikeliHood(StructureScore):
@@ -698,31 +532,10 @@ class LogLikeliHood(StructureScore):
 
     def _log_likelihood(self, variable, parents):
 
-        var_states = self.state_names[variable]
-        var_cardinality = len(var_states)
-        parents = list(parents)
-        state_counts = self.state_counts(variable, parents, reindex=False)
-        num_parents_states = np.prod([len(self.state_names[var]) for var in parents])
-
-        counts = np.asarray(state_counts)
-        log_likelihoods = np.zeros_like(counts, dtype=float)
-
-        # Compute the log-counts
-        np.log(counts, out=log_likelihoods, where=counts > 0)
-
-        # Compute the log-conditional sample size
-        log_conditionals = np.sum(counts, axis=0, dtype=float)
-        np.log(log_conditionals, out=log_conditionals, where=log_conditionals > 0)
-
-        # Compute the log-likelihoods
-        log_likelihoods -= log_conditionals
-        log_likelihoods *= counts
-
-        return (np.sum(log_likelihoods), num_parents_states, var_cardinality)
+        pass
 
     def local_score(self, variable, parents):
-        ll, num_parents_states, var_cardinality = self._log_likelihood(variable=variable, parents=parents)
-        return ll
+        pass
 
 
 class BIC(LogLikeliHood):
@@ -805,12 +618,7 @@ class BIC(LogLikeliHood):
             If `variable` or any parent is not present in `state_names` or data, or if
             the data contains unsupported types (e.g., continuous values).
         """
-
-        sample_size = len(self.data)
-        ll, num_parents_states, var_cardinality = self._log_likelihood(variable=variable, parents=parents)
-        score = ll - 0.5 * log(sample_size) * num_parents_states * (var_cardinality - 1)
-
-        return score
+        pass
 
 
 class AIC(LogLikeliHood):
@@ -896,11 +704,7 @@ class AIC(LogLikeliHood):
             If `variable` or any parent is not present in `state_names` or data, or if
             the data contains unsupported types (e.g., continuous values).
         """
-
-        ll, num_parents_states, var_cardinality = self._log_likelihood(variable=variable, parents=parents)
-        score = ll - num_parents_states * (var_cardinality - 1)
-
-        return score
+        pass
 
 
 class LogLikelihoodGauss(StructureScore):
@@ -978,12 +782,7 @@ class LogLikelihoodGauss(StructureScore):
         ValueError
             If the GLM cannot be fitted due to missing or non-numeric data.
         """
-        if len(parents) == 0:
-            glm_model = smf.glm(formula=f"{variable} ~ 1", data=self.data).fit()
-        else:
-            glm_model = smf.glm(formula=f"{variable} ~ {' + '.join(parents)}", data=self.data).fit()
-
-        return (glm_model.llf, glm_model.df_model)
+        pass
 
     def local_score(self, variable, parents):
         """
@@ -1015,9 +814,7 @@ class LogLikelihoodGauss(StructureScore):
         ValueError
             If the GLM cannot be fitted due to non-numeric data or missing columns.
         """
-        ll, df_model = self._log_likelihood(variable=variable, parents=parents)
-
-        return ll
+        pass
 
 
 class BICGauss(LogLikelihoodGauss):
@@ -1091,10 +888,7 @@ class BICGauss(LogLikelihoodGauss):
         ValueError
             If the GLM cannot be fitted due to missing or non-numeric data.
         """
-        ll, df_model = self._log_likelihood(variable=variable, parents=parents)
-
-        # Adding +2 to model df to compute the likelihood df.
-        return ll - (((df_model + 2) / 2) * np.log(self.data.shape[0]))
+        pass
 
 
 class AICGauss(LogLikelihoodGauss):
@@ -1168,10 +962,7 @@ class AICGauss(LogLikelihoodGauss):
         ValueError
             If the GLM cannot be fitted due to missing or non-numeric data.
         """
-        ll, df_model = self._log_likelihood(variable=variable, parents=parents)
-
-        # Adding +2 to model df to compute the likelihood df.
-        return ll - (df_model + 2)
+        pass
 
 
 class LogLikelihoodCondGauss(StructureScore):
@@ -1256,15 +1047,7 @@ class LogLikelihoodCondGauss(StructureScore):
         B  0.100722  0.818795  0.154614
         C -0.006956  0.154614  0.540758
         """
-        # If a number of rows less than number of variables, return variance 1 with no covariance.
-        if (df.shape[0] == 1) or (df.shape[0] < len(df.columns)):
-            return pd.DataFrame(np.eye(len(df.columns)), index=df.columns, columns=df.columns)
-
-        # If the matrix is not positive semidefinite, add a small error to make it.
-        df_cov = df.cov()
-        if np.any(np.isclose(np.linalg.eig(df_cov)[0], 0)):
-            df_cov = df_cov + 1e-6
-        return df_cov
+        pass
 
     def _cat_parents_product(self, parents):
         """
@@ -1289,13 +1072,7 @@ class LogLikelihoodCondGauss(StructureScore):
         >>> score._cat_parents_product(["A", "B", "C"])
         6
         """
-        k = 1
-        for pa in parents:
-            if self.dtypes[pa] != "N":
-                n_states = self.data[pa].nunique()
-                if n_states > 1:
-                    k *= self.data[pa].nunique()
-        return k
+        pass
 
     def _get_num_parameters(self, variable, parents):
         """
@@ -1324,22 +1101,7 @@ class LogLikelihoodCondGauss(StructureScore):
         >>> score._get_num_parameters("A", ["B", "C"])
         12
         """
-        parent_dtypes = [self.dtypes[pa] for pa in parents]
-        n_cont_parents = parent_dtypes.count("N")
-
-        if self.dtypes[variable] == "N":
-            k = self._cat_parents_product(parents=parents) * (n_cont_parents + 2)
-        else:
-            if n_cont_parents == 0:
-                k = self._cat_parents_product(parents=parents) * (self.data[variable].nunique() - 1)
-            else:
-                k = (
-                    self._cat_parents_product(parents=parents)
-                    * (self.data[variable].nunique() - 1)
-                    * (n_cont_parents + 2)
-                )
-
-        return k
+        pass
 
     def _log_likelihood(self, variable, parents):
         """
@@ -1380,134 +1142,7 @@ class LogLikelihoodCondGauss(StructureScore):
             Networks of Mixed Variables. International journal of data science and
             analytics, 6(1), 3–18. https://doi.org/10.1007/s41060-017-0085-7
         """
-        df = self.data.loc[:, [variable] + parents]
-
-        # If variable is continuous, the probability is computed as:
-        # P(C1 | C2, D) = p(C1, C2 | D) / p(C2 | D)
-        if self.dtypes[variable] == "N":
-            c1 = variable
-            c2 = [var for var in parents if self.dtypes[var] == "N"]
-            d = list(set(parents) - set(c2))
-
-            # If D = {}, p(C1, C2 | D) = p(C1, C2) and p(C2 | D) = p(C2)
-            if len(d) == 0:
-                # If C2 = {}, p(C1, C2 | D) = p(C1) and p(C2 | D) = 1.
-                if len(c2) == 0:
-                    p_c1c2_d = multivariate_normal.pdf(
-                        x=df,
-                        mean=df.mean(axis=0),
-                        cov=LogLikelihoodCondGauss._adjusted_cov(df),
-                        allow_singular=True,
-                    )
-                    return np.sum(np.log(p_c1c2_d))
-                else:
-                    p_c1c2_d = multivariate_normal.pdf(
-                        x=df,
-                        mean=df.mean(axis=0),
-                        cov=LogLikelihoodCondGauss._adjusted_cov(df),
-                        allow_singular=True,
-                    )
-                    df_c2 = df.loc[:, c2]
-                    p_c2_d = np.maximum(
-                        1e-8,
-                        multivariate_normal.pdf(
-                            x=df_c2,
-                            mean=df_c2.mean(axis=0),
-                            cov=LogLikelihoodCondGauss._adjusted_cov(df_c2),
-                            allow_singular=True,
-                        ),
-                    )
-
-                    return np.sum(np.log(p_c1c2_d / p_c2_d))
-            else:
-                log_like = 0
-                for d_states, df_d in df.groupby(d, observed=True):
-                    p_c1c2_d = multivariate_normal.pdf(
-                        x=df_d.loc[:, [c1] + c2],
-                        mean=df_d.loc[:, [c1] + c2].mean(axis=0),
-                        cov=LogLikelihoodCondGauss._adjusted_cov(df_d.loc[:, [c1] + c2]),
-                        allow_singular=True,
-                    )
-                    if len(c2) == 0:
-                        p_c2_d = 1
-                    else:
-                        p_c2_d = np.maximum(
-                            1e-8,
-                            multivariate_normal.pdf(
-                                x=df_d.loc[:, c2],
-                                mean=df_d.loc[:, c2].mean(axis=0),
-                                cov=LogLikelihoodCondGauss._adjusted_cov(df_d.loc[:, c2]),
-                                allow_singular=True,
-                            ),
-                        )
-
-                    log_like += np.sum(np.log(p_c1c2_d / p_c2_d))
-                return log_like
-
-        # If variable is discrete, the probability is computed as:
-        # P(D1 | C, D2) = (p(C| D1, D2) p(D1, D2)) / (p(C| D2) p(D2))
-        else:
-            d1 = variable
-            c = [var for var in parents if self.dtypes[var] == "N"]
-            d2 = list(set(parents) - set(c))
-
-            log_like = 0
-            for d_states, df_d1d2 in df.groupby([d1] + d2, observed=True):
-                # Check if df_d1d2 also has the discrete variables.
-                # If C={}, p(C | D1, D2) = 1.
-                if len(c) == 0:
-                    p_c_d1d2 = 1
-                else:
-                    p_c_d1d2 = multivariate_normal.pdf(
-                        x=df_d1d2.loc[:, c],
-                        mean=df_d1d2.loc[:, c].mean(axis=0),
-                        cov=LogLikelihoodCondGauss._adjusted_cov(df_d1d2.loc[:, c]),
-                        allow_singular=True,
-                    )
-
-                # P(D1, D2)
-                p_d1d2 = np.repeat(df_d1d2.shape[0] / df.shape[0], df_d1d2.shape[0])
-
-                # If D2 = {}, p(D1 | C, D2) = (p(C | D1, D2) p(D1, D2)) / p(C)
-                if len(d2) == 0:
-                    if len(c) == 0:
-                        p_c_d2 = 1
-                    else:
-                        p_c_d2 = np.maximum(
-                            1e-8,
-                            multivariate_normal.pdf(
-                                x=df_d1d2.loc[:, c],
-                                mean=df.loc[:, c].mean(axis=0),
-                                cov=LogLikelihoodCondGauss._adjusted_cov(df.loc[:, c]),
-                                allow_singular=True,
-                            ),
-                        )
-
-                    log_like += np.sum(np.log(p_c_d1d2 * p_d1d2 / p_c_d2))
-                else:
-                    if len(c) == 0:
-                        p_c_d2 = 1
-                    else:
-                        df_d2 = df
-                        for var, state in zip(d2, d_states[1:]):
-                            df_d2 = df_d2.loc[df_d2[var] == state]
-
-                        p_c_d2 = np.maximum(
-                            1e-8,
-                            multivariate_normal.pdf(
-                                x=df_d1d2.loc[:, c],
-                                mean=df_d2.loc[:, c].mean(axis=0),
-                                cov=LogLikelihoodCondGauss._adjusted_cov(df_d2.loc[:, c]),
-                                allow_singular=True,
-                            ),
-                        )
-
-                    p_d2 = df.groupby(d2, observed=True).count() / df.shape[0]
-                    for var, value in zip(d2, d_states[1:]):
-                        p_d2 = p_d2.loc[p_d2.index.get_level_values(var) == value]
-
-                    log_like += np.sum(np.log((p_c_d1d2 * p_d1d2) / (p_c_d2 * p_d2.values.ravel()[0])))
-            return log_like
+        pass
 
     def local_score(self, variable, parents):
         """
@@ -1537,8 +1172,7 @@ class LogLikelihoodCondGauss(StructureScore):
         ValueError
             If the log-likelihood cannot be computed due to incompatible data or variable types.
         """
-        ll = self._log_likelihood(variable=variable, parents=parents)
-        return ll
+        pass
 
 
 class BICCondGauss(LogLikelihoodCondGauss):
@@ -1620,11 +1254,7 @@ class BICCondGauss(LogLikelihoodCondGauss):
         ValueError
             If the log-likelihood or parameter count cannot be computed for the given configuration.
         """
-
-        ll = self._log_likelihood(variable=variable, parents=parents)
-        k = self._get_num_parameters(variable=variable, parents=parents)
-
-        return ll - ((k / 2) * np.log(self.data.shape[0]))
+        pass
 
 
 class AICCondGauss(LogLikelihoodCondGauss):
@@ -1704,7 +1334,4 @@ class AICCondGauss(LogLikelihoodCondGauss):
         ValueError
             If the log-likelihood or parameter count cannot be computed for the given configuration.
         """
-        ll = self._log_likelihood(variable=variable, parents=parents)
-        k = self._get_num_parameters(variable=variable, parents=parents)
-
-        return ll - k
+        pass
